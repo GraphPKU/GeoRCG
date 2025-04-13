@@ -1,9 +1,6 @@
-try:
-    from rdkit import Chem
-    from qm9.rdkit_functions import BasicMolecularMetrics
-    use_rdkit = True
-except ModuleNotFoundError:
-    use_rdkit = False
+from rdkit import Chem
+from qm9.rdkit_functions import BasicMolecularMetrics, preprocess_generated_molecules
+use_rdkit = True
 import qm9.dataset as dataset
 import torch
 import matplotlib
@@ -13,13 +10,50 @@ import numpy as np
 import scipy.stats as sp_stats
 from qm9 import bond_analyze
 
-
 # 'atom_decoder': ['H', 'B', 'C', 'N', 'O', 'F', 'Al', 'Si', 'P', 'S', 'Cl', 'As', 'Br', 'I', 'Hg', 'Bi'],
 
 analyzed_19 ={'atom_types': {1: 93818, 3: 21212, 0: 139496, 2: 8251, 4: 26},
             'distances': [0, 0, 0, 0, 0, 0, 0, 22566, 258690, 16534, 50256, 181302, 19676, 122590, 23874, 54834, 309290, 205426, 172004, 229940, 193180, 193058, 161294, 178292, 152184, 157242, 189186, 150298, 125750, 147020, 127574, 133654, 142696, 125906, 98168, 95340, 88632, 80694, 71750, 64466, 55740, 44570, 42850, 36084, 29310, 27268, 23696, 20254, 17112, 14130, 12220, 10660, 9112, 7640, 6378, 5350, 4384, 3650, 2840, 2362, 2050, 1662, 1414, 1216, 966, 856, 492, 516, 420, 326, 388, 326, 236, 140, 130, 92, 62, 52, 78, 56, 24, 8, 10, 12, 18, 2, 10, 4, 2, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0]
 }
+############################
+# Validity and bond analysis
+def check_stability(positions, atom_type, dataset_info, debug=False):
+    assert len(positions.shape) == 2
+    assert positions.shape[1] == 3
+    atom_decoder = dataset_info['atom_decoder']
+    x = positions[:, 0]
+    y = positions[:, 1]
+    z = positions[:, 2]
 
+    nr_bonds = np.zeros(len(x), dtype='int')
+
+    for i in range(len(x)):
+        for j in range(i + 1, len(x)):
+            p1 = np.array([x[i], y[i], z[i]])
+            p2 = np.array([x[j], y[j], z[j]])
+            dist = np.sqrt(np.sum((p1 - p2) ** 2))
+            atom1, atom2 = atom_decoder[atom_type[i]], atom_decoder[atom_type[j]]
+            pair = sorted([atom_type[i], atom_type[j]])
+            if dataset_info['name'] == 'qm9' or dataset_info['name'] == 'qm9_second_half' or dataset_info['name'] == 'qm9_first_half':
+                order = bond_analyze.get_bond_order(atom1, atom2, dist)
+            elif dataset_info['name'] == 'geom':
+                order = bond_analyze.geom_predictor(
+                    (atom_decoder[pair[0]], atom_decoder[pair[1]]), dist)
+            nr_bonds[i] += order
+            nr_bonds[j] += order
+    nr_stable_bonds = 0
+    for atom_type_i, nr_bonds_i in zip(atom_type, nr_bonds):
+        possible_bonds = bond_analyze.allowed_bonds[atom_decoder[atom_type_i]]
+        if type(possible_bonds) == int:
+            is_stable = possible_bonds == nr_bonds_i
+        else:
+            is_stable = nr_bonds_i in possible_bonds
+        if not is_stable and debug:
+            print("Invalid bonds for molecule %s with %d bonds" % (atom_decoder[atom_type_i], nr_bonds_i))
+        nr_stable_bonds += int(is_stable)
+
+    molecule_stable = nr_stable_bonds == len(x)
+    return molecule_stable, nr_stable_bonds, len(x)
 
 class Histogram_discrete:
     def __init__(self, name='histogram'):
@@ -204,45 +238,7 @@ def main_analyze_qm9(remove_h: bool, dataset_name='qm9', n_atoms=None):
     print(" Histogram of the atom types (H (optional), C, N, O, F)", hist_atom_type.bins)
 
 
-############################
-# Validity and bond analysis
-def check_stability(positions, atom_type, dataset_info, debug=False):
-    assert len(positions.shape) == 2
-    assert positions.shape[1] == 3
-    atom_decoder = dataset_info['atom_decoder']
-    x = positions[:, 0]
-    y = positions[:, 1]
-    z = positions[:, 2]
 
-    nr_bonds = np.zeros(len(x), dtype='int')
-
-    for i in range(len(x)):
-        for j in range(i + 1, len(x)):
-            p1 = np.array([x[i], y[i], z[i]])
-            p2 = np.array([x[j], y[j], z[j]])
-            dist = np.sqrt(np.sum((p1 - p2) ** 2))
-            atom1, atom2 = atom_decoder[atom_type[i]], atom_decoder[atom_type[j]]
-            pair = sorted([atom_type[i], atom_type[j]])
-            if dataset_info['name'] == 'qm9' or dataset_info['name'] == 'qm9_second_half' or dataset_info['name'] == 'qm9_first_half':
-                order = bond_analyze.get_bond_order(atom1, atom2, dist)
-            elif dataset_info['name'] == 'geom':
-                order = bond_analyze.geom_predictor(
-                    (atom_decoder[pair[0]], atom_decoder[pair[1]]), dist)
-            nr_bonds[i] += order
-            nr_bonds[j] += order
-    nr_stable_bonds = 0
-    for atom_type_i, nr_bonds_i in zip(atom_type, nr_bonds):
-        possible_bonds = bond_analyze.allowed_bonds[atom_decoder[atom_type_i]]
-        if type(possible_bonds) == int:
-            is_stable = possible_bonds == nr_bonds_i
-        else:
-            is_stable = nr_bonds_i in possible_bonds
-        if not is_stable and debug:
-            print("Invalid bonds for molecule %s with %d bonds" % (atom_decoder[atom_type_i], nr_bonds_i))
-        nr_stable_bonds += int(is_stable)
-
-    molecule_stable = nr_stable_bonds == len(x)
-    return molecule_stable, nr_stable_bonds, len(x)
 
 
 def process_loader(dataloader):
@@ -320,55 +316,21 @@ def main_check_stability(remove_h: bool, batch_size=32):
         test_validity_for(test_loader)
 
 
-def analyze_stability_for_molecules(molecule_list, dataset_info):
-    one_hot = molecule_list['one_hot']
-    x = molecule_list['x']
-    node_mask = molecule_list['node_mask']
 
-    if isinstance(node_mask, torch.Tensor):
-        atomsxmol = torch.sum(node_mask, dim=1)
-    else:
-        atomsxmol = [torch.sum(m) for m in node_mask]
 
-    n_samples = len(x)
+def analyze_stability_for_molecules(molecule_list, dataset_info, return_relaxed_valid_smiles=False):
+    
+    processed_list = preprocess_generated_molecules(molecule_list)
+    
+    metrics = BasicMolecularMetrics(dataset_info)
+    if return_relaxed_valid_smiles:
+        valid_smiles, _ = metrics.compute_relaxed_validity(processed_list)
+        return valid_smiles
+    validity_dict = metrics.compute_stability(processed_list)
+    rdkit_metrics = metrics.evaluate(processed_list)
+    
+    return validity_dict, rdkit_metrics
 
-    molecule_stable = 0
-    nr_stable_bonds = 0
-    n_atoms = 0
-
-    processed_list = []
-
-    for i in range(n_samples):
-        atom_type = one_hot[i].argmax(1).cpu().detach()
-        pos = x[i].cpu().detach()
-
-        atom_type = atom_type[0:int(atomsxmol[i])]
-        pos = pos[0:int(atomsxmol[i])]
-        processed_list.append((pos, atom_type))
-
-    for mol in processed_list:
-        pos, atom_type = mol
-        validity_results = check_stability(pos, atom_type, dataset_info)
-
-        molecule_stable += int(validity_results[0])
-        nr_stable_bonds += int(validity_results[1])
-        n_atoms += int(validity_results[2])
-
-    # Validity
-    fraction_mol_stable = molecule_stable / float(n_samples)
-    fraction_atm_stable = nr_stable_bonds / float(n_atoms)
-    validity_dict = {
-        'mol_stable': fraction_mol_stable,
-        'atm_stable': fraction_atm_stable,
-    }
-
-    if use_rdkit:
-        metrics = BasicMolecularMetrics(dataset_info)
-        rdkit_metrics = metrics.evaluate(processed_list)
-        #print("Unique molecules:", rdkit_metrics[1])
-        return validity_dict, rdkit_metrics
-    else:
-        return validity_dict, None
 
 
 def analyze_node_distribution(mol_list, save_path):

@@ -1,10 +1,12 @@
 import torch
 
-
 def compute_mean_mad(dataloaders, properties, dataset_name):
     if dataset_name == 'qm9':
+        assert 0, "Shouldn't call this for existing tasks."
         return compute_mean_mad_from_dataloader(dataloaders['train'], properties)
     elif dataset_name == 'qm9_second_half' or dataset_name == 'qm9_second_half':
+        assert (not isinstance(dataloaders['valid'].sampler, torch.utils.data.DistributedSampler)) or dataloaders['valid'].sampler.num_replicas ==1, "Your are using distributed learning which splits the validation dataset into subsets, which may lead to inconsistency in constant calculation."
+        
         return compute_mean_mad_from_dataloader(dataloaders['valid'], properties)
     else:
         raise Exception('Wrong dataset name')

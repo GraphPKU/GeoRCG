@@ -2,10 +2,10 @@ from torch.utils.data import DataLoader
 from qm9.data.args import init_argparse
 from qm9.data.collate import PreprocessQM9
 from qm9.data.utils import initialize_datasets
-import os
+import torch
 
 
-def retrieve_dataloaders(cfg):
+def retrieve_dataloaders(cfg, raw_datasets_and_collate_fn=False):
     if 'qm9' in cfg.dataset:
         batch_size = cfg.batch_size
         num_workers = cfg.num_workers
@@ -29,23 +29,41 @@ def retrieve_dataloaders(cfg):
 
         # Construct PyTorch dataloaders from datasets
         preprocess = PreprocessQM9(load_charges=cfg.include_charges)
+        
+        
+        sampler_train = torch.utils.data.DistributedSampler(
+            datasets["train"], num_replicas=cfg.world_size, rank=cfg.rank, shuffle=True, 
+        )
+        sampler_valid = torch.utils.data.DistributedSampler(
+            datasets["valid"], num_replicas=cfg.world_size, rank=cfg.rank, shuffle=False
+        )
+        sampler_test = torch.utils.data.DistributedSampler(
+            datasets["test"], num_replicas=cfg.world_size, rank=cfg.rank, shuffle=False
+        )
+        
+        samplers = [sampler_train, sampler_valid, sampler_test]
         dataloaders = {split: DataLoader(dataset,
                                          batch_size=batch_size,
-                                         shuffle=args.shuffle if (split == 'train') else False,
                                          num_workers=num_workers,
-                                         collate_fn=preprocess.collate_fn)
-                             for split, dataset in datasets.items()}
+                                         collate_fn=preprocess.collate_fn,
+                                         sampler=samplers[i],
+                                         ) 
+                             for i, (split, dataset) in enumerate(datasets.items())}
+        if raw_datasets_and_collate_fn:
+            return datasets, preprocess.collate_fn
+
     elif 'geom' in cfg.dataset:
         import build_geom_dataset
         from configs.datasets_config import get_dataset_info
-        data_file = './data/geom/geom_drugs_30.npy'
         dataset_info = get_dataset_info(cfg.dataset, cfg.remove_h)
 
         # Retrieve QM9 dataloaders
-        split_data = build_geom_dataset.load_split_data(data_file,
+        print("Loading geom data ...")
+        split_data = build_geom_dataset.load_split_data(cfg.data_file,
                                                         val_proportion=0.1,
                                                         test_proportion=0.1,
                                                         filter_size=cfg.filter_molecule_size)
+        print("Geom data loaded.")
         transform = build_geom_dataset.GeomDrugsTransform(dataset_info,
                                                           cfg.include_charges,
                                                           cfg.device,
@@ -53,14 +71,24 @@ def retrieve_dataloaders(cfg):
         dataloaders = {}
         for key, data_list in zip(['train', 'val', 'test'], split_data):
             dataset = build_geom_dataset.GeomDrugsDataset(data_list,
-                                                          transform=transform)
+                                                          transform=transform, debug=cfg.debug)
             shuffle = (key == 'train') and not cfg.sequential
+            
+            if raw_datasets_and_collate_fn:
+                assert key == "train"
+                from build_geom_dataset import collate_fn as geom_collate_fn
+                datasets = {}
+                datasets["train"] = dataset
+                return datasets, geom_collate_fn
 
             # Sequential dataloading disabled for now.
             dataloaders[key] = build_geom_dataset.GeomDrugsDataLoader(
                 sequential=cfg.sequential, dataset=dataset,
                 batch_size=cfg.batch_size,
-                shuffle=shuffle)
+                shuffle=shuffle,
+                world_size=cfg.world_size,
+                rank=cfg.rank
+                )
         del split_data
         charge_scale = None
     else:

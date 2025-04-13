@@ -2,6 +2,7 @@ import msgpack
 import os
 import numpy as np
 import torch
+import torch.utils
 from torch.utils.data import BatchSampler, DataLoader, Dataset, SequentialSampler
 import argparse
 from qm9.data import collate as qm9_collate
@@ -103,22 +104,31 @@ def load_split_data(conformation_file, val_proportion=0.1, test_proportion=0.1,
     num_mol = len(data_list)
     val_index = int(num_mol * val_proportion)
     test_index = val_index + int(num_mol * test_proportion)
-    val_data, test_data, train_data = np.split(data_list, [val_index, test_index])
+    # val_data, test_data, train_data = np.split(data_list, [val_index, test_index])    
+    # Manually split the data list
+    val_data = data_list[:val_index]
+    test_data = data_list[val_index:test_index]
+    train_data = data_list[test_index:]
     return train_data, val_data, test_data
 
 
 class GeomDrugsDataset(Dataset):
-    def __init__(self, data_list, transform=None):
+    def __init__(self, data_list, transform=None, debug=False):
         """
         Args:
             transform (callable, optional): Optional transform to be applied
                 on a sample.
         """
+        if debug:
+            print("\nUsing debug mode!!! Please turn it off for training.\n")
+            data_list = data_list[:16]
+        
         self.transform = transform
 
         # Sort the data list by size
         lengths = [s.shape[0] for s in data_list]
         argsort = np.argsort(lengths)               # Sort by decreasing size
+        
         self.data_list = [data_list[i] for i in argsort]
         # Store indices where the size changes
         self.split_indices = np.unique(np.sort(lengths), return_index=True)[1][1:]
@@ -187,7 +197,7 @@ def collate_fn(batch):
 
 
 class GeomDrugsDataLoader(DataLoader):
-    def __init__(self, sequential, dataset, batch_size, shuffle, drop_last=False):
+    def __init__(self, sequential, dataset, batch_size, shuffle, world_size, rank, drop_last=False):
 
         if sequential:
             # This goes over the data sequentially, advantage is that it takes
@@ -202,8 +212,16 @@ class GeomDrugsDataLoader(DataLoader):
         else:
             # Dataloader goes through data randomly and pads the molecules to
             # the largest molecule size.
-            super().__init__(dataset, batch_size, shuffle=shuffle,
-                             collate_fn=collate_fn, drop_last=drop_last)
+            sampler = torch.utils.data.DistributedSampler(
+                dataset,
+                num_replicas=world_size,
+                rank=rank,
+                shuffle=shuffle
+            )
+            
+            super().__init__(dataset, batch_size, 
+                            #  num_workers=4,
+                             collate_fn=collate_fn, sampler=sampler)
 
 
 class GeomDrugsTransform(object):
@@ -221,9 +239,13 @@ class GeomDrugsTransform(object):
         one_hot = atom_types == self.atomic_number_list
         new_data['one_hot'] = one_hot
         if self.include_charges:
-            new_data['charges'] = torch.zeros(n, 1, device=self.device)
+            # new_data['charges'] = torch.zeros(n, 1, device=self.device)
+            # XXX: We set charges to atom_types for easy coding. We manually ignore charges when constructing input data.
+            new_data['charges'] = atom_types
         else:
-            new_data['charges'] = torch.zeros(0, device=self.device)
+            # new_data['charges'] = torch.zeros(0, device=self.device)
+            # XXX: We set charges to atom_types for easy coding.
+            new_data['charges'] = atom_types
         new_data['atom_mask'] = torch.ones(n, device=self.device)
 
         if self.sequential:
@@ -238,7 +260,7 @@ if __name__ == '__main__':
     parser.add_argument("--conformations", type=int, default=30,
                         help="Max number of conformations kept for each molecule.")
     parser.add_argument("--remove_h", action='store_true', help="Remove hydrogens from the dataset.")
-    parser.add_argument("--data_dir", type=str, default='~/diffusion/data/geom/')
+    parser.add_argument("--data_dir", type=str, default='./data/geom/')
     parser.add_argument("--data_file", type=str, default="drugs_crude.msgpack")
     args = parser.parse_args()
     extract_conformers(args)

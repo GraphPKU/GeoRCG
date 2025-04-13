@@ -1,4 +1,4 @@
-from .models.gcl import E_GCL, unsorted_segment_sum
+from .models_qm9.gcl import E_GCL, unsorted_segment_sum
 import torch
 from torch import nn
 

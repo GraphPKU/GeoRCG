@@ -3,8 +3,7 @@ import torch
 import torch.nn.functional as F
 from equivariant_diffusion.utils import assert_mean_zero_with_mask, remove_mean_with_mask,\
     assert_correctly_masked
-from qm9.analyze import check_stability
-
+from qm9.rdkit_functions import check_stability
 
 def rotate_chain(z):
     assert z.size(0) == 1
@@ -51,7 +50,11 @@ def reverse_tensor(x):
     return x[torch.arange(x.size(0) - 1, -1, -1)]
 
 
-def sample_chain(args, device, flow, n_tries, dataset_info, prop_dist=None):
+def sample_chain(args, device, flow, n_tries, dataset_info, prop_dist=None, rep_context=None, keep_frames=100):
+    assert args.context_node_nf == 0 and prop_dist is None and rep_context is None, "Only support unconditional pcdm and unconditional rdm now"
+
+    
+    
     n_samples = 1
     if args.dataset == 'qm9' or args.dataset == 'qm9_second_half' or args.dataset == 'qm9_first_half':
         n_nodes = 19
@@ -59,14 +62,20 @@ def sample_chain(args, device, flow, n_tries, dataset_info, prop_dist=None):
         n_nodes = 44
     else:
         raise ValueError()
+    
 
-    # TODO FIX: This conditioning just zeros.
+    
+
     if args.context_node_nf > 0:
-        context = prop_dist.sample(n_nodes).unsqueeze(1).unsqueeze(0)
+        assert args.conditioning
+
+        context = prop_dist.sample(n_nodes)
+        context = context.unsqueeze(1).unsqueeze(0)
         context = context.repeat(1, n_nodes, 1).to(device)
-        #context = torch.zeros(n_samples, n_nodes, args.context_node_nf).to(device)
+
     else:
         context = None
+
 
     node_mask = torch.ones(n_samples, n_nodes, 1).to(device)
 
@@ -76,11 +85,14 @@ def sample_chain(args, device, flow, n_tries, dataset_info, prop_dist=None):
     if args.probabilistic_model == 'diffusion':
         one_hot, charges, x = None, None, None
         for i in range(n_tries):
-            chain = flow.sample_chain(n_samples, n_nodes, node_mask, edge_mask, context, keep_frames=100)
-            chain = reverse_tensor(chain)
+            chain = flow.sample_chain(n_samples, n_nodes, node_mask, edge_mask, context, keep_frames=keep_frames)
+            chain = reverse_tensor(chain)   
 
             # Repeat last frame to see final sample better.
-            chain = torch.cat([chain, chain[-1:].repeat(10, 1, 1)], dim=0)
+            # chain = torch.cat([chain, chain[-1:].repeat(10, 1, 1)], dim=0)
+            
+            
+            
             x = chain[-1:, :, 0:3]
             one_hot = chain[-1:, :, 3:-1]
             one_hot = torch.argmax(one_hot, dim=2)
@@ -107,9 +119,13 @@ def sample_chain(args, device, flow, n_tries, dataset_info, prop_dist=None):
     return one_hot, charges, x
 
 
-def sample(args, device, generative_model, dataset_info,
-           prop_dist=None, nodesxsample=torch.tensor([10]), context=None,
-           fix_noise=False):
+
+def sample(args, device, generative_model, dataset_info, 
+           prop_dist=None, nodesxsample=torch.tensor([10]), rep_context=None,
+           fix_noise=False, context=None, fixed_rep=None, ddim_S=None):
+
+    assert prop_dist is None and args.context_node_nf == 0 and context is None, "The molecule generator is always unconditionally used (it only conditions on representations)."
+    
     max_n_nodes = dataset_info['max_n_nodes']  # this is the maximum node_size in QM9
 
     assert int(torch.max(nodesxsample)) <= max_n_nodes
@@ -127,6 +143,7 @@ def sample(args, device, generative_model, dataset_info,
     edge_mask = edge_mask.view(batch_size * max_n_nodes * max_n_nodes, 1).to(device)
     node_mask = node_mask.unsqueeze(2).to(device)
 
+
     # TODO FIX: This conditioning just zeros.
     if args.context_node_nf > 0:
         if context is None:
@@ -134,9 +151,22 @@ def sample(args, device, generative_model, dataset_info,
         context = context.unsqueeze(1).repeat(1, max_n_nodes, 1).to(device) * node_mask
     else:
         context = None
+        
+        
 
     if args.probabilistic_model == 'diffusion':
-        x, h = generative_model.sample(batch_size, max_n_nodes, node_mask, edge_mask, context, fix_noise=fix_noise)
+        # TODO: DDIM_S works here only through wrapped sampler 
+        x, h = generative_model.sample(
+            batch_size, 
+            max_n_nodes, 
+            node_mask, 
+            edge_mask, 
+            context=context, 
+            fix_noise=fix_noise, 
+            fixed_rep=fixed_rep,
+            rep_context=rep_context, 
+            ddim_S=ddim_S
+            )
 
         assert_correctly_masked(x, node_mask)
         assert_mean_zero_with_mask(x, node_mask)
@@ -150,22 +180,35 @@ def sample(args, device, generative_model, dataset_info,
 
     else:
         raise ValueError(args.probabilistic_model)
+    
 
     return one_hot, charges, x, node_mask
 
 
-def sample_sweep_conditional(args, device, generative_model, dataset_info, prop_dist, n_nodes=19, n_frames=100):
+def sample_sweep_conditional(args, device, generative_model, dataset_info, prop_dist, n_nodes=19, n_frames=100, return_property_values=False, start_value=None, end_value=None):
     nodesxsample = torch.tensor([n_nodes] * n_frames)
 
     context = []
+    if return_property_values:
+        property_values = []
+    assert len(prop_dist.distributions) == 1, "Only support 1 (addtional) condition now."
     for key in prop_dist.distributions:
-        min_val, max_val = prop_dist.distributions[key][n_nodes]['params']
+        if start_value is not None and end_value is not None:
+            min_val, max_val = start_value, end_value
+        else:
+            min_val, max_val = prop_dist.distributions[key][n_nodes]['params']
+        print(f"Conditioning the property value: {min_val} - {max_val}")
         mean, mad = prop_dist.normalizer[key]['mean'], prop_dist.normalizer[key]['mad']
         min_val = (min_val - mean) / (mad)
         max_val = (max_val - mean) / (mad)
         context_row = torch.tensor(np.linspace(min_val, max_val, n_frames)).unsqueeze(1)
         context.append(context_row)
+        property_values = [cont * mad + mean for cont in context_row]
     context = torch.cat(context, dim=1).float().to(device)
+    
 
-    one_hot, charges, x, node_mask = sample(args, device, generative_model, dataset_info, prop_dist, nodesxsample=nodesxsample, context=context, fix_noise=True)
+    one_hot, charges, x, node_mask = sample(args, device, generative_model, dataset_info, nodesxsample=nodesxsample, rep_context=context, fix_noise=True)
+    if return_property_values:
+        return one_hot, charges, x, node_mask, property_values
+    
     return one_hot, charges, x, node_mask

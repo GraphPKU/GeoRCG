@@ -1,32 +1,279 @@
-*__pycache__*
-*.pyc
-data/*
-.idea*
-bash.sh
-kohler/cache/*
-*.ipynb
-.
-*.log
-*wandb*
-*.DS_Store*
-qm9/temp/*
-kohler/qm9/temp/*
-push.sj
-bash_qm9.sh
-outputs/*
-bash_dw4.sh
-bash_qm9pos.sh
-bash_qm9_analyze.sh
-beautiful_figures/ovito_images/*
-*toy/samples/*
-*toy/loss_components/*
-qm9.sh
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# C extensions
+*.so
+
+# Distribution / packaging
+.Python
 build/
+develop-eggs/
 dist/
-EN_diffusion.egg-info/
-*/sidechainnet_data/*
-*example.pdb
-qm9/property_prediction/outputs/*
-qm9_conditional.sh
-figures/
-geom_drugs.sh
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+share/python-wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+MANIFEST
+
+# PyInstaller
+#  Usually these files are written by a python script from a template
+#  before PyInstaller builds the exe, so as to inject date/other infos into it.
+*.manifest
+*.spec
+
+# Installer logs
+pip-log.txt
+pip-delete-this-directory.txt
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# Profiling data
+.prof
+
+# Data files
+*.csv
+*.tsv
+*.dat
+*.data
+*.dmp
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# IPython
+profile_default/
+ipython_config.py
+
+# pyenv
+.python-version
+
+# Celery beat schedule file
+celerybeat-schedule
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Spyder project settings
+.spyderproject
+.spyproject
+
+# Rope project settings
+.ropeproject
+
+# mkdocs documentation
+/site
+
+# Coverage reports
+htmlcov/
+.tox/
+.nox/
+.coverage
+.coverage.*
+.cache
+nosetests.xml
+coverage.xml
+*.cover
+*.py,cover
+.hypothesis/
+.pytest_cache/
+cover/
+
+# Translations
+*.mo
+*.pot
+
+# Django stuff:
+*.log
+local_settings.py
+db.sqlite3
+db.sqlite3-journal
+
+# Flask stuff:
+instance/
+.webassets-cache
+
+# Scrapy stuff:
+.scrapy
+
+# Sphinx documentation
+docs/_build/
+
+# PyBuilder
+target/
+
+# Jupyter Notebook
+.ipynb_checkpoints
+
+# pyenv
+.python-version
+
+# Celery beat schedule file
+celerybeat-schedule
+
+# SageMath parsed files
+*.sage.py
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# mypy
+.mypy_cache/
+.dmypy.json
+dmypy.json
+
+# Pyre type checker
+.pyre/
+
+# systemd
+*.service
+
+# Environments
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Poetry
+poetry.lock
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+outputs/
+
+/data/
+generated_samples/
+wandb/
+LICENSE
+checkpoints/rdm_ckpts/
+checkpoints/pcdm_ckpts/
+checkpoints/classifiers_ckpts/
+vis_reps/
+run_evals.py
+eval_src/eval_results/
+eval_src/visualize_results/
+multirun/
+/temp/
+/unimol_pretrain_save/
+/paper_draw/
+prop_dist_samples*
+/models/unimol/example_data/
+/models/unimol/conformation_generation
+/models/unimol/ckpts
+/models/unimol/Uni-Core/
+/models/unimol/example_data/
+/eval_src/vis_notebooks/data/
+dsgdb9nsd.xyz*
+sweep_grid.pdf
+/graphs/
+mad_pred_mean_label_pairs_epoch_0.txt
+mad_pred_mean_label_pairs_with_error_epoch_0.txt
+checkpoints/encoder_ckpts/unimol_drug.pt
+eval_src/sample_conformer_qm9_LDM-3DG.pt
+node_dist_cal.py
+eval_src/eval_2dmetrics.py
+eval_src/collect_prop_dist_samples.py
+eval_src/eval_analyze_visualize_rep_sweep.py
+eval_src/eval_LDM_3DG_edm.py
+eval_src/eval_LDM_3DG.py
+hydra_logs/
+# rep_sweep/
+# visualize_results/
+# temp/
+# models/unimol/example_data
+# unimol_pretrain_save/
+# paper_draw/
+# eval_src/sample_conformer_qm9_LDM-3DG.pt
+# unicore-0.0.1*
+# ppt.ipynb
+ICLR_submit/
+mad_pred_mean_label_pairs*
+models/unimol/datas
+lightning_logs/
+SBDD/
+semlaflow/original_checkpoints/
+unimol_pretrain_more_save_continue/
+unimol_pretrain_more_save/
+checkpoints/encoder_ckpts/
+semlaflow/original_checkpoints/drug_original.ckpt
+
+semlaflow/original_checkpoints/drug_original.ckpt
+unimol_pretrain_more_save_continue_pred/
+unimol_pretrain_more_global_save/
+eval_src/tmp/
+frad_lipschitz.txt
+unimol_global_lipschitz.txt
+unimol_lipschitz.txt
+unimol_more_first4_lipschitz.txt
+unimol_more_lipschitz.txt
+calculate_Lipschitz_count.sh
+eval_src/vis_notebooks/aa.sh
+eval_src/vis_notebooks/check_effective_num_layers.py
+eval_src/vis_notebooks/vis_reps_sampler_drug.ipynb
+
+
+
+unimol_pretrain_more_global_v2_save/
+midi_geom_data/
+
+*.sh
+nohup.out
+other_exps/
+openai-chatgpt-latest.vsix
+ICML2025_anonymous/

@@ -12,7 +12,7 @@ from qm9.data.prepare.process import process_xyz_files, process_xyz_gdb9
 from qm9.data.prepare.utils import download_data, is_int, cleanup_file
 
 
-def download_dataset_qm9(datadir, dataname, splits=None, calculate_thermo=True, exclude=True, cleanup=True):
+def download_dataset_qm9(datadir, dataname, splits=None, calculate_thermo=True, exclude=True, cleanup=True, which_split="edm"):
     """
     Download and prepare the QM9 (GDB9) dataset.
     """
@@ -37,7 +37,7 @@ def download_dataset_qm9(datadir, dataname, splits=None, calculate_thermo=True, 
 
     # If splits are not specified, automatically generate them.
     if splits is None:
-        splits = gen_splits_gdb9(gdb9dir, cleanup)
+        splits = gen_splits_gdb9(gdb9dir, cleanup, which_split=which_split)
 
     # Process GDB9 dataset, and return dictionary of splits
     gdb9_data = {}
@@ -57,13 +57,13 @@ def download_dataset_qm9(datadir, dataname, splits=None, calculate_thermo=True, 
     # Save processed GDB9 data into train/validation/test splits
     logging.info('Saving processed data:')
     for split, data in gdb9_data.items():
-        savedir = join(gdb9dir, split+'.npz')
+        savedir = join(gdb9dir, split+f'{which_split if which_split != "edm" else ""}.npz')
         np.savez_compressed(savedir, **data)
 
     logging.info('Processing/saving complete!')
 
 
-def gen_splits_gdb9(gdb9dir, cleanup=True):
+def gen_splits_gdb9(gdb9dir, cleanup=True, which_split="edm"):
     """
     Generate GDB9 training/validation/test splits used.
 
@@ -97,38 +97,47 @@ def gen_splits_gdb9(gdb9dir, cleanup=True):
         len(excluded_idxs))
 
     # Now, create a list of indices
-    Ngdb9 = 133885
-    Nexcluded = 3054
+    if which_split == "edm":
+        Ngdb9 = 133885
+        Nexcluded = 3054
 
-    included_idxs = np.array(
-        sorted(list(set(range(Ngdb9)) - set(excluded_idxs))))
+        included_idxs = np.array(
+            sorted(list(set(range(Ngdb9)) - set(excluded_idxs))))
 
-    # Now generate random permutations to assign molecules to training/validation/test sets.
-    Nmols = Ngdb9 - Nexcluded
+        # Now generate random permutations to assign molecules to training/validation/test sets.
+        Nmols = Ngdb9 - Nexcluded
 
-    Ntrain = 100000
-    Ntest = int(0.1*Nmols)
-    Nvalid = Nmols - (Ntrain + Ntest)
+        Ntrain = 100000
+        Ntest = int(0.1*Nmols)
+        Nvalid = Nmols - (Ntrain + Ntest)
 
-    # Generate random permutation
-    np.random.seed(0)
-    data_perm = np.random.permutation(Nmols)
+        # Generate random permutation
+        np.random.seed(0)
+        data_perm = np.random.permutation(Nmols)
 
-    # Now use the permutations to generate the indices of the dataset splits.
-    # train, valid, test, extra = np.split(included_idxs[data_perm], [Ntrain, Ntrain+Nvalid, Ntrain+Nvalid+Ntest])
+        # Now use the permutations to generate the indices of the dataset splits.
+        # train, valid, test, extra = np.split(included_idxs[data_perm], [Ntrain, Ntrain+Nvalid, Ntrain+Nvalid+Ntest])
 
-    train, valid, test, extra = np.split(
-        data_perm, [Ntrain, Ntrain+Nvalid, Ntrain+Nvalid+Ntest])
+        train, valid, test, extra = np.split(
+            data_perm, [Ntrain, Ntrain+Nvalid, Ntrain+Nvalid+Ntest])
 
-    assert(len(extra) == 0), 'Split was inexact {} {} {} {}'.format(
-        len(train), len(valid), len(test), len(extra))
+        assert(len(extra) == 0), 'Split was inexact {} {} {} {}'.format(
+            len(train), len(valid), len(test), len(extra))
 
-    train = included_idxs[train]
-    valid = included_idxs[valid]
-    test = included_idxs[test]
+        train = included_idxs[train]
+        valid = included_idxs[valid]
+        test = included_idxs[test]
+        splits = {'train': train, 'valid': valid, 'test': test}
+    elif which_split == "midi":
+        file_path = "./eval_src/midi_metrics/midi_qm9_splits.npy"
+        assert os.path.exists(file_path), f"The midi split for qm9 does not exist, please first generate it and place it to {file_path}!"
 
-    splits = {'train': train, 'valid': valid, 'test': test}
-
+        splits = np.load("./eval_src/midi_metrics/midi_qm9_splits.npy", allow_pickle=True).item()
+        
+    else:
+        raise ValueError(f"{which_split} not implemented")
+    
+    
     # Cleanup
     cleanup_file(gdb9_txt_excluded, cleanup)
 
@@ -213,7 +222,7 @@ def get_unique_charges(charges):
     Get count of each charge for each molecule.
     """
     # Create a dictionary of charges
-    charge_counts = {z: np.zeros(len(charges), dtype=np.int)
+    charge_counts = {z: np.zeros(len(charges), dtype=np.int32)
                      for z in np.unique(charges)}
     print(charge_counts.keys())
 

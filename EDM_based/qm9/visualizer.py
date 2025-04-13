@@ -304,14 +304,22 @@ def plot_grid():
     plt.show()
 
 
-def visualize(path, dataset_info, max_num=25, wandb=None, spheres_3d=False):
-    files = load_xyz_files(path)[0:max_num]
+def visualize(path, dataset_info, max_num=25, wandb=None, spheres_3d=False, shuffle=True, show_Hs=True):
+    files = load_xyz_files(path, shuffle=shuffle)[0:max_num]
     for file in files:
         positions, one_hot, charges = load_molecule_xyz(file, dataset_info)
         atom_type = torch.argmax(one_hot, dim=1).numpy()
         dists = torch.cdist(positions.unsqueeze(0), positions.unsqueeze(0)).squeeze(0)
         dists = dists[dists > 0]
         print("Average distance between atoms", dists.mean().item())
+        
+        
+        if not show_Hs:
+            H_mask = (atom_type == 0).squeeze()
+            positions = positions[~H_mask]
+            atom_type = atom_type[~H_mask]
+        
+        
         plot_data3d(positions, atom_type, dataset_info=dataset_info, save_path=file[:-4] + '.png',
                     spheres_3d=spheres_3d)
 

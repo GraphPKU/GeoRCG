@@ -53,7 +53,9 @@ class ProcessedDataset(Dataset):
             if len(thermo_targets) == 0:
                 logging.warning('No thermochemical targets included! Try reprocessing dataset with --force-download!')
             else:
-                logging.info('Removing thermochemical energy from targets {}'.format(' '.join(thermo_targets)))
+                # logging.info('Removing thermochemical energy from targets {}'.format(' '.join(thermo_targets)))
+                # print('Removing thermochemical energy from targets {}'.format(' '.join(thermo_targets)))
+                pass
             for key in thermo_targets:
                 data[key] -= data[key + '_thermo'].to(data[key].dtype)
 

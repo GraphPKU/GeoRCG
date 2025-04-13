@@ -5,7 +5,7 @@ from qm9.data.prepare.md17 import download_dataset_md17
 from qm9.data.prepare.qm9 import download_dataset_qm9
 
 
-def prepare_dataset(datadir, dataset, subset=None, splits=None, cleanup=True, force_download=False):
+def prepare_dataset(datadir, dataset, subset=None, splits=None, cleanup=True, force_download=False, which_split="edm"):
     """
     Download and process dataset.
 
@@ -47,7 +47,7 @@ def prepare_dataset(datadir, dataset, subset=None, splits=None, cleanup=True, fo
 
     # Assume one data file for each split
     datafiles = {split: os.path.join(
-        *(dataset_dir + [split + '.npz'])) for split in split_names}
+        *(dataset_dir + [split + f'{which_split if which_split != "edm" else ""}.npz'])) for split in split_names}
 
     # Check datafiles exist
     datafiles_checks = [os.path.exists(datafile)
@@ -57,7 +57,8 @@ def prepare_dataset(datadir, dataset, subset=None, splits=None, cleanup=True, fo
     # Probably should add more consistency checks, such as number of datapoints, etc...
     new_download = False
     if all(datafiles_checks):
-        logging.info('Dataset exists and is processed.')
+        # logging.info('Dataset exists and is processed.')
+        pass
     elif all([not x for x in datafiles_checks]):
         # If checks are failed.
         new_download = True
@@ -69,7 +70,7 @@ def prepare_dataset(datadir, dataset, subset=None, splits=None, cleanup=True, fo
     if new_download or force_download:
         logging.info('Dataset does not exist. Downloading!')
         if dataset.lower().startswith('qm9'):
-            download_dataset_qm9(datadir, dataset, splits, cleanup=cleanup)
+            download_dataset_qm9(datadir, dataset, splits, cleanup=cleanup, which_split=which_split)
         elif dataset.lower().startswith('md17'):
             download_dataset_md17(datadir, dataset, subset,
                                   splits, cleanup=cleanup)

@@ -2,11 +2,14 @@ import numpy as np
 import getpass
 import os
 import torch
+from torch_scatter import scatter
+from equivariant_diffusion.utils import assert_mean_zero_with_mask, remove_mean_with_mask,\
+    assert_correctly_masked, sample_center_gravity_zero_gaussian_with_mask
 
 # Folders
 def create_folders(args):
     try:
-        os.makedirs('outputs')
+        os.makedirs('outputs/')
     except OSError:
         pass
 
@@ -61,8 +64,8 @@ def gradient_clipping(flow, gradnorm_queue):
         gradnorm_queue.add(float(grad_norm))
 
     if float(grad_norm) > max_grad_norm:
-        print(f'Clipped gradient with value {grad_norm:.1f} '
-              f'while allowed {max_grad_norm:.1f}')
+        print(f'Clipped gradient with value {grad_norm:.3f} '
+              f'while allowed {max_grad_norm:.3f}')
     return grad_norm
 
 
@@ -129,25 +132,41 @@ def random_rotation(x):
     return x.contiguous()
 
 
-# Other utilities
-def get_wandb_username(username):
-    if username == 'cvignac':
-        return 'cvignac'
-    current_user = getpass.getuser()
-    if current_user == 'victor' or current_user == 'garciasa':
-        return 'vgsatorras'
-    else:
-        return username
+
+import torch.distributed as dist
+import wandb
+def dist_wandb_log(key, value):
+    dist_training = dist.is_available() and dist.is_initialized()
+    rank = dist.get_rank() if dist_training else 0
+
+    if rank == 0:
+        dict_ = {key: value}
+        wandb.log(dict_, commit=True)
+
+def dist_print(message):
+    if not dist.is_initialized() or dist.get_rank() == 0:
+        print(message)
+        
+def reduced_mean(sum_metric, sum_num):
+    if not (type(sum_metric) is torch.Tensor):
+        sum_metric = torch.tensor(sum_metric).float().to("cuda")
+    if not (type(sum_num) is torch.Tensor):
+        sum_num = torch.tensor(sum_num).float().to("cuda")
+    reduced_sum_metric = sum_metric
+    reduced_sum_num = sum_num
+    dist.all_reduce(reduced_sum_metric, op=dist.ReduceOp.SUM)
+    dist.all_reduce(reduced_sum_num, op=dist.ReduceOp.SUM)
+    
+    return reduced_sum_metric / reduced_sum_num
 
 
-if __name__ == "__main__":
+def OmegaConf2Dict(conf):
+    dict_config = {}
+    for key, value in conf.items():
+        dict_config[key] = value
+    return dict_config
 
 
-    ## Test random_rotation
-    bs = 2
-    n_nodes = 16
-    n_dims = 3
-    x = torch.randn(bs, n_nodes, n_dims)
-    print(x)
-    x = random_rotation(x)
-    #print(x)
+
+
+

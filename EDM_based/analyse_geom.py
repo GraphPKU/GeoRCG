@@ -166,7 +166,7 @@ def analyse_geom_stability():
     num_stable_atoms_total = 0
     num_atoms_total = 0
     formatted_data = []
-    for i, (p, at_types) in tqdm(enumerate(zip(all_positions_split, all_atom_types_split))):
+    for i, (p, at_types) in tqdm(enumerate(zip(all_positions_split, all_atom_types_split)), total=len(all_positions_split)):
         p = torch.from_numpy(p)
         at_types = torch.from_numpy(at_types)[:, None]
         one_hot = torch.eq(at_types, atomic_nb_list).int()

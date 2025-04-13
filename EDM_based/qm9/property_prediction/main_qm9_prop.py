@@ -12,10 +12,16 @@ import pickle
 loss_l1 = nn.L1Loss()
 
 
-def train(model, epoch, loader, mean, mad, property, device, partition='train', optimizer=None, lr_scheduler=None, log_interval=20, debug_break=False):
+def train(model, epoch, loader, mean, mad, property, device, partition='train', optimizer=None, lr_scheduler=None, log_interval=20, debug_break=False, output_molecules=False):
     if partition == 'train':
         lr_scheduler.step()
+        loader.sampler.set_epoch(epoch)
     res = {'loss': 0, 'counter': 0, 'loss_arr':[]}
+    if output_molecules:
+        molecules = {'one_hot': [], 'x': [], 'node_mask': []}
+        
+    pairs = []
+        
     for i, data in enumerate(loader):
         if partition == 'train':
             model.train()
@@ -23,7 +29,12 @@ def train(model, epoch, loader, mean, mad, property, device, partition='train', 
 
         else:
             model.eval()
+        if output_molecules:
+            molecules['one_hot'].append(data['one_hot'].cpu())
+            molecules['x'].append(data['positions'].cpu())
+            molecules['node_mask'].append(data['atom_mask'].unsqueeze(-1).cpu())
 
+        
         batch_size, n_nodes, _ = data['positions'].size()
         atom_positions = data['positions'].view(batch_size * n_nodes, -1).to(device, torch.float32)
         atom_mask = data['atom_mask'].view(batch_size * n_nodes, -1).to(device, torch.float32)
@@ -79,6 +90,12 @@ def train(model, epoch, loader, mean, mad, property, device, partition='train', 
             optimizer.step()
         else:
             loss = loss_l1(mad * pred + mean, label)
+            
+            adjusted_pred = mad * pred + mean  # Adjust the prediction
+            
+            # Save the (mad * pred + mean, label) pairs
+            for p, l in zip(adjusted_pred.cpu().detach().numpy(), label.cpu().detach().numpy()):
+                pairs.append((p, l))  # Collect each (pred, label) pair
 
         res['loss'] += loss.item() * batch_size
         res['counter'] += batch_size
@@ -92,11 +109,23 @@ def train(model, epoch, loader, mean, mad, property, device, partition='train', 
             print(prefix + "Epoch %d \t Iteration %d \t loss %.4f" % (epoch, i, sum(res['loss_arr'][-10:])/len(res['loss_arr'][-10:])))
         if debug_break:
             break
+    
+    if partition != 'train':
+        pairs_file = f"mad_pred_mean_label_pairs_epoch_{epoch}.txt"
+        with open(pairs_file, 'w') as f:
+            f.write("Pred, Label\n")
+            for pred, label in pairs:
+                f.write(f"{pred}, {label}\n")
+        print(f"Saved (mad * pred + mean, label) pairs to {pairs_file}")
+    
+    if output_molecules:
+        molecules = {key: torch.cat(molecules[key], dim=0) for key in molecules}
+        return res['loss'] / res['counter'], molecules
     return res['loss'] / res['counter']
 
 
-def test(model, epoch, loader, mean, mad, property, device, log_interval, debug_break=False):
-    return train(model, epoch, loader, mean, mad, property, device, partition='test', log_interval=log_interval, debug_break=debug_break)
+def test(model, epoch, loader, mean, mad, property, device, log_interval, debug_break=False, output_molecules=False):
+    return train(model, epoch, loader, mean, mad, property, device, partition='test', log_interval=log_interval, debug_break=debug_break, output_molecules=output_molecules)
 
 
 def get_model(args):
@@ -172,12 +201,20 @@ if __name__ == "__main__":
     dtype = torch.float32
     args.device = device
     print(args)
+    
+    seed = args.seed
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  # if using multi-GPU
+    torch.backends.cudnn.deterministic = True
+    torch.backends.cudnn.benchmark = False
 
     res = {'epochs': [], 'losess': [], 'best_val': 1e10, 'best_test': 1e10, 'best_epoch': 0}
 
     prop_utils.makedir(args.outf)
     prop_utils.makedir(args.outf + "/" + args.exp_name)
-
+    args.world_size = 1
+    args.rank = 0
     dataloaders, charge_scale = dataset.retrieve_dataloaders(args)
     args.dataset = "qm9_second_half"
     dataloaders_aux, _ = dataset.retrieve_dataloaders(args)
