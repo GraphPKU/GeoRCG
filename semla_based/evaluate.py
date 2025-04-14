@@ -8,15 +8,15 @@ import torch
 import numpy as np
 import lightning as L
 
-import semlaflow.scriptutil as util
-from semlaflow.flowmodels.fm import Integrator, MolecularCFM
-from semlaflow.flowmodels.semla import EquiInvDynamics, SemlaGenerator
+import scriptutil as util
+from flowmodels.fm import Integrator, MolecularCFM
+from flowmodels.semla import EquiInvDynamics, SemlaGenerator
 
-from semlaflow.data.datasets import GeometricDataset
-from semlaflow.data.datamodules import GeometricInterpolantDM
-from semlaflow.data.interpolate import GeometricInterpolant, GeometricNoiseSampler
-from semlaflow.flowmodels.encoders import initialize_encoder
-from semlaflow.flowmodels.rep_samplers import *
+from data.datasets import GeometricDataset
+from data.datamodules import GeometricInterpolantDM
+from data.interpolate import GeometricInterpolant, GeometricNoiseSampler
+from flowmodels.encoders import initialize_encoder
+from flowmodels.rep_samplers import *
 import hydra
 
 import time
@@ -94,7 +94,7 @@ def load_model(args, vocab):
         )
 
     elif hparams["architecture"] == "eqgat":
-        from semlaflow.models.eqgat import EqgatGenerator
+        from models.eqgat import EqgatGenerator
 
         egnn_gen = EqgatGenerator(
             hparams["d_model"],
@@ -108,7 +108,7 @@ def load_model(args, vocab):
         )
 
     elif hparams["architecture"] == "egnn":
-        from semlaflow.models.egnn import VanillaEgnnGenerator
+        from models.egnn import VanillaEgnnGenerator
 
         n_layers = args.n_layers if hparams.get("n_layers") is None else hparams["n_layers"]
         if n_layers is None:

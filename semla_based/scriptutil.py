@@ -11,11 +11,11 @@ from rdkit import RDLogger
 from openbabel import pybel
 from torchmetrics import MetricCollection
 
-import semlaflow.util.rdkit as smolRD
-import semlaflow.util.functional as smolF
-import semlaflow.util.metrics as Metrics
-from semlaflow.util.tokeniser import Vocabulary
-from semlaflow.data.datasets import GeometricDataset
+import util.rdkit as smolRD
+import util.functional as smolF
+import util.metrics as Metrics
+from util.tokeniser import Vocabulary
+from data.datasets import GeometricDataset
 import time
 
 # Declarations to be used in scripts

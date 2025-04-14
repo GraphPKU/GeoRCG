@@ -6,9 +6,9 @@ with the original version of the model.
 import torch
 import torch.nn as nn
 
-import semlaflow.util.functional as smolF
-from semlaflow.flowmodels.semla import MolecularGenerator
-from semlaflow.flowmodels.attention import BasicTransformerBlock
+import util.functional as smolF
+from flowmodels.semla import MolecularGenerator
+from flowmodels.attention import BasicTransformerBlock
 
 
 class VanillaEgnnLayer(torch.nn.Module):

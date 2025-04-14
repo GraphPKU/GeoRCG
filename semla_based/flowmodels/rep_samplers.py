@@ -1,19 +1,16 @@
 
-from torch.utils.data import Subset
-from qm9.models import DistributionNodes
-from models.rdm.models.diffusion.ddim import DDIMSampler as BaseDDIMSampler
+
 import torch
-from semlaflow.flowmodels.encoders import get_global_representation
 import numpy as np
-from qm9 import dataset
-from omegaconf import OmegaConf
 from tqdm import tqdm
-from models.sde.sde_sampling import get_pc_sampler, AncestralSamplingPredictor, LangevinCorrector
-from models.sde.sde_lib import VPSDE
-from models.rdm.models.diffusion.ddpm import DDPM as baseDDPM
-from build_geom_dataset import GeomDrugsDataset
-from semlaflow.data.datasets import GeometricDataset
-from semlaflow.flowmodels.encoders import initialize_encoder
+
+from models_GeoRCG.rdm.models.diffusion.ddim import DDIMSampler as BaseDDIMSampler
+from models_GeoRCG.sde.sde_sampling import get_pc_sampler, AncestralSamplingPredictor, LangevinCorrector
+from models_GeoRCG.sde.sde_lib import VPSDE
+from models_GeoRCG.rdm.models.diffusion.ddpm import DDPM as baseDDPM
+from data.datasets import GeometricDataset
+from flowmodels.encoders import initialize_encoder
+from flowmodels.encoders import get_global_representation
 
 class BaseRepSampler(torch.nn.Module):
     
@@ -165,9 +162,6 @@ class GtSampler(BaseRepSampler):
         self.raw_dataset.perm = None
         self.geom = False
         self.dataset = dataset
-        if isinstance(raw_dataset, GeomDrugsDataset):
-            self.calculate_geom_num_atoms()
-            self.geom = True
         if isinstance(raw_dataset, GeometricDataset):
             self.calculate_geom_smol_num_atoms()
             self.geom = True
@@ -234,7 +228,7 @@ class GtSampler(BaseRepSampler):
         # z = processed_data["charges"].to(device).to(dtype)
         # pos = processed_data["positions"].to(device).to(dtype)
         # node_mask = processed_data["atom_mask"].to(device).to(dtype)
-        from semlaflow.util.molrepr import GeometricMol, GeometricMolBatch
+        from util.molrepr import GeometricMol, GeometricMolBatch
         data = GeometricMolBatch.from_list(datas)
         pos = data.coords.to(device)
         z = data.atomics.to(device)
@@ -343,10 +337,10 @@ def initilize_rep_sampler(rep_sampler_args, dataset_args=None, debug=False, data
             param.requires_grad = False
         encoder.eval()
 
-        import semlaflow.scriptutil as util
+        import scriptutil as util
         from pathlib import Path
         from functools import partial
-        from semlaflow.data.datasets import GeometricDataset
+        from data.datasets import GeometricDataset
 
         if dataset_args.dataset == "qm9" or dataset_args.dataset == "qm9_second_half":
             coord_std = util.QM9_COORDS_STD_DEV
@@ -390,7 +384,7 @@ def initilize_rep_sampler(rep_sampler_args, dataset_args=None, debug=False, data
         assert rep_sampler_args.rdm_ckpt is not None
         
         
-        from models.util import misc
+        from models_GeoRCG.util import misc
         rdm_model, rdm_train_model_args = misc.initialize_and_load_rdm_model(rep_sampler_args.rdm_ckpt)
         rdm_model.eval()
         rep_sampler = DDIMSampler(rdm_model, eta=rep_sampler_args.eta, step_num=rep_sampler_args.step_num)
@@ -401,7 +395,7 @@ def initilize_rep_sampler(rep_sampler_args, dataset_args=None, debug=False, data
         assert rep_sampler_args.snr is not None
         
         
-        from models.util import misc
+        from models_GeoRCG.util import misc
         rdm_model, rdm_train_model_args = misc.initialize_and_load_rdm_model(rep_sampler_args.rdm_ckpt)
         rdm_model.eval()
         rep_sampler = PCSampler(rdm_model, inv_temp=rep_sampler_args.inv_temp, n_steps=rep_sampler_args.n_steps, snr=rep_sampler_args.snr)

@@ -1,5 +1,5 @@
 ckpt_path: ???
-data_path: "./data/geom/smol"
+data_path: "./data/geom"
 dataset: "geom-drugs"
 
 batch_cost: 8192
@@ -11,9 +11,9 @@ cat_sampling_noise_level: 1
 ode_sampling_strategy: "log"
 
 encoder_type: "unimol"  # 'unimol' or 'frad'
-encoder_path: "./checkpoints/encoder_ckpts/unimol_drug.pt"
+encoder_path: "../checkpoints/encoder_ckpts/unimol_drug.pt"
 sampler: "PCSampler"  # ["PCSampler", "GtSampler", "DDIMSampler"]
-rdm_ckpt: "./checkpoints/rdm_ckpts/Drug_unimol_huge/checkpoint-last.pth"  # resume from checkpoint
+rdm_ckpt: "../checkpoints/rdm_ckpts/Drug_unimol_huge/checkpoint-last.pth"  # resume from checkpoint
 
 step_num: 250
 eta: 1.0

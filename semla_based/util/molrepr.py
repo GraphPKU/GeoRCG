@@ -14,9 +14,9 @@ import numpy as np
 from rdkit import Chem
 from scipy.spatial.transform import Rotation
 
-import semlaflow.util.rdkit as smolRD
-import semlaflow.util.functional as smolF
-from semlaflow.util.tokeniser import Vocabulary
+import util.rdkit as smolRD
+import util.functional as smolF
+from util.tokeniser import Vocabulary
 
 
 # Type aliases

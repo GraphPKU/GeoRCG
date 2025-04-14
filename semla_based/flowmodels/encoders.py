@@ -1,14 +1,14 @@
 import sys
 sys.path.append(".")
 
-from models.torchmdnet.models.model import load_model
+from models_GeoRCG.torchmdnet.models.model import load_model
 
 import torch
 import numpy as np
 import omegaconf
 import os
 from omegaconf import OmegaConf
-import semlaflow.scriptutil as util
+import scriptutil as util
 
 vocab_index2atomic_number = {
     0: -1,

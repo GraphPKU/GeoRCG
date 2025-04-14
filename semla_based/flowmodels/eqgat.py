@@ -2,9 +2,9 @@ import torch
 import torch.nn.functional as F
 import torch.nn as nn
 
-import semlaflow.util.functional as smolF
-from semlaflow.flowmodels.semla import MolecularGenerator, CoordNorm
-from semlaflow.flowmodels.attention import BasicTransformerBlock
+import util.functional as smolF
+from flowmodels.semla import MolecularGenerator, CoordNorm
+from flowmodels.attention import BasicTransformerBlock
 
 
 def adj_to_attn_mask(adj_matrix, pos_inf=False):

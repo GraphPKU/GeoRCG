@@ -9,13 +9,13 @@ from torchmetrics import MetricCollection
 from concurrent.futures import ThreadPoolExecutor
 from torch.optim.lr_scheduler import LinearLR, OneCycleLR
 
-import semlaflow.util.rdkit as smolRD
-import semlaflow.util.metrics as Metrics
-import semlaflow.util.functional as smolF
-from semlaflow.util.tokeniser import Vocabulary
-from semlaflow.util.molrepr import GeometricMol
-from semlaflow.flowmodels.semla import MolecularGenerator
-from semlaflow.flowmodels.encoders import get_global_representation
+import util.rdkit as smolRD
+import util.metrics as Metrics
+import util.functional as smolF
+from util.tokeniser import Vocabulary
+from util.molrepr import GeometricMol
+from flowmodels.semla import MolecularGenerator
+from flowmodels.encoders import get_global_representation
 
 _T = torch.Tensor
 _BatchT = Dict[str, _T]

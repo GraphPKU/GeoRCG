@@ -5,7 +5,7 @@ import torch
 from rdkit import Chem
 from torchmetrics import Metric
 
-import semlaflow.util.rdkit as smolRD
+import util.rdkit as smolRD
 
 
 ALLOWED_VALENCIES = {

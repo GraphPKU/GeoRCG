@@ -4,8 +4,8 @@ import torch.nn as nn
 import numpy as np
 from abc import ABC, abstractmethod
 
-import semlaflow.util.functional as smolF
-from models.attention import BasicTransformerBlock, DiTBlock, TimestepEmbedder
+import util.functional as smolF
+from models_GeoRCG.attention import BasicTransformerBlock, DiTBlock, TimestepEmbedder
 
 
 def adj_to_attn_mask(adj_matrix, pos_inf=False):

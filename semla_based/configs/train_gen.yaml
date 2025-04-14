@@ -1,0 +1,10 @@
+defaults:
+  - experiments_gen: drug
+  - _self_
+
+hydra:
+  sweep:
+    dir: ./hydra_logs/train_gen/${experiments_gen.dataset}/${experiments_gen.version}_${now:%Y-%m-%d_%H-%M-%S}/
+  run:
+    dir: ./hydra_logs/train_gen/${experiments_gen.dataset}/${experiments_gen.version}_${now:%Y-%m-%d_%H-%M-%S}/
+
