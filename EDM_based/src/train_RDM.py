@@ -11,14 +11,14 @@ import matplotlib.pyplot as plt
 import torch.distributed as dist
 from pathlib import Path
 
-import GeoRCG_models.util.misc as misc
-from GeoRCG_models.engine_rdm import train_one_epoch
+import models_GeoRCG.util.misc as misc
+from models_GeoRCG.engine_rdm import train_one_epoch
 from omegaconf import OmegaConf
 from initialize_models import initialize_RDM
 from qm9 import dataset
 from qm9.models import DistributionNodes
 from configs.datasets_config import get_dataset_info
-from GeoRCG_models.rep_samplers import initilize_rep_sampler
+from models_GeoRCG.rep_samplers import initilize_rep_sampler
 from qm9.utils import compute_mean_mad
 
 

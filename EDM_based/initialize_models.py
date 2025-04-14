@@ -1,9 +1,9 @@
-from GeoRCG_models.rdm.util import instantiate_from_config
+from models_GeoRCG.rdm.util import instantiate_from_config
 import os
-from GeoRCG_models.util.misc import NativeScalerWithGradNormCount as NativeScaler
-import GeoRCG_models.util.misc as misc
+from models_GeoRCG.util.misc import NativeScalerWithGradNormCount as NativeScaler
+import models_GeoRCG.util.misc as misc
 import torch
-from GeoRCG_models.encoders import initialize_encoder
+from models_GeoRCG.encoders import initialize_encoder
 
 
 def initialize_RDM(rdm_args, model_args, device):

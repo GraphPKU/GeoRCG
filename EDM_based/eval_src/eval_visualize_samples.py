@@ -3,7 +3,7 @@ sys.path.append(".")
 
 # Rdkit import should be first, do not move it
 from qm9 import visualizer as qm9_visualizer
-from GeoRCG_models.rep_samplers import *
+from models_GeoRCG.rep_samplers import *
 from eval_src.eval_utils import prepare_model_and_dataset_info
 from pathlib import Path
 import hydra

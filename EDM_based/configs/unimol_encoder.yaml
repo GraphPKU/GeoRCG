@@ -1,7 +1,7 @@
 unimol_args:
   data: ./data/geom
   dict_name: dict.txt
-  user_dir: ./GeoRCG_models/unimol/unimol
+  user_dir: ./models_GeoRCG/unimol/unimol
   train_subset: train
   valid_subset: valid
   data_path: ./data/geom

@@ -194,7 +194,7 @@ class EGNN(nn.Module):
         )
         self.embedding_out = nn.Linear(self.hidden_nf, out_node_nf)
         if self.cross_attn:
-            from GeoRCG_models.attention import BasicTransformerBlock
+            from models_GeoRCG.attention import BasicTransformerBlock
             self.attns = nn.ModuleList()
             n_heads = 4
             dropout = attn_dropout

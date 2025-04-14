@@ -10,7 +10,7 @@ from qm9.property_prediction.main_qm9_prop import test
 from qm9.property_prediction import main_qm9_prop
 from qm9.sampling import sample, sample_sweep_conditional
 import qm9.visualizer as vis
-from GeoRCG_models.rep_samplers import *
+from models_GeoRCG.rep_samplers import *
 from eval_src.eval_utils import prepare_model_and_dataset_info, analyze_all_metrics
 import logging
 logger = logging.getLogger(name=__name__)

@@ -44,7 +44,7 @@ rdm_args:
 
 
 model_args:
-  target: GeoRCG_models.rdm.models.diffusion.ddpm.RDM
+  target: models_GeoRCG.rdm.models.diffusion.ddpm.RDM
   params:
     use_ema: false
     linear_start: 0.0015
@@ -62,7 +62,7 @@ model_args:
 
 
     unet_config:
-      target: GeoRCG_models.rdm.modules.diffusionmodules.latentmlp.SimpleMLP
+      target: models_GeoRCG.rdm.modules.diffusionmodules.latentmlp.SimpleMLP
       params:
         in_channels: 256
         time_embed_dim: 256
@@ -73,7 +73,7 @@ model_args:
         use_context: true
         context_channels: 256
     cond_stage_config:
-      target: GeoRCG_models.rdm.modules.encoders.modules.ClassEmbedder
+      target: models_GeoRCG.rdm.modules.encoders.modules.ClassEmbedder
       params:
         embed_dim: 256
         n_classes: 30

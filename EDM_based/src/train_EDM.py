@@ -19,8 +19,8 @@ from qm9.models import get_optim, get_model
 from equivariant_diffusion import en_diffusion
 from equivariant_diffusion.utils import assert_correctly_masked
 from equivariant_diffusion import utils as flow_utils
-from GeoRCG_models.rep_samplers import *
-from GeoRCG_models.encoders import initialize_encoder
+from models_GeoRCG.rep_samplers import *
+from models_GeoRCG.encoders import initialize_encoder
 from utils import  reduced_mean
 from qm9.utils import prepare_context, compute_mean_mad
 from train_test import train_epoch, test, analyze_and_save
@@ -218,7 +218,7 @@ def main(args):
 
     # Set up the sampler
     rep_sampler = initilize_rep_sampler(gen_args, device, gen_args, debug=gen_args.debug)
-    from GeoRCG_models.wrapper import SelfConditionWrappedSampler
+    from models_GeoRCG.wrapper import SelfConditionWrappedSampler
     sampler = SelfConditionWrappedSampler(gen_sampler=model_ema, rdm_sampler=rep_sampler)
 
 

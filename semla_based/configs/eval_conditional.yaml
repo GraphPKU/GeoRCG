@@ -1,0 +1,46 @@
+ckpt_path: ???
+property: alpha
+data_path: "data/qm9_semla/qm9/smol_conditional_${property}"
+dataset: "qm9_second_half"
+
+batch_cost: 8192
+dataset_split: "test"
+n_molecules: 10000
+n_replicates: 3
+integration_steps: 100
+cat_sampling_noise_level: 1
+ode_sampling_strategy: "log"
+
+encoder_type: "frad"  # 'unimol' or 'frad'
+encoder_path: "./checkpoints/encoder_ckpts/QM9.ckpt"
+sampler: "PCSampler"  # ["PCSampler", "GtSampler", "DDIMSampler"]
+rdm_ckpt: "./checkpoints/rdm_ckpts/rdm_batch128_pretrainedEnc"  # resume from checkpoint
+
+step_num: 250
+eta: 1.0
+inv_temp: 1.0
+n_steps: 2  # 5
+snr: 0.05
+
+Gt_dataset: "train"  # ["train", "test", "valid"]
+
+bucket_cost_scale: "linear"
+
+# Allow overriding for EGNN arch since some flowmodels were not saved with a value for n_layers
+n_layers: null
+
+categorical_strategy: 'uniform-sample'
+
+
+cfg_coef: -1.0
+use_gate: true
+
+sparse_rep_condition: null
+rep_loss_weight: 0.1
+
+
+cond_type: cross_attn
+time_condition: False
+
+classifiers_path: 'checkpoints/classifiers_ckpts/exp_class_${property}'
+device: cuda

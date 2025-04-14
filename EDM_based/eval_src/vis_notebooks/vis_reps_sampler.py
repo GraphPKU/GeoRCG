@@ -8,7 +8,7 @@ sys.path.append("..")
 import os
 os.chdir("../../")
 
-from GeoRCG_models.rep_samplers import initilize_rep_sampler
+from models_GeoRCG.rep_samplers import initilize_rep_sampler
 from omegaconf import OmegaConf
 import torch
 import matplotlib.pyplot as plt
