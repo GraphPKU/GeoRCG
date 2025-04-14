@@ -7,7 +7,7 @@ import pickle
 from configs.datasets_config import get_dataset_info
 from os.path import join
 from qm9.utils import  compute_mean_mad
-from models.rep_samplers import *
+from GeoRCG_models.rep_samplers import *
 from qm9.models import get_model, DistributionProperty
 from qm9.rdkit_functions import BasicMolecularMetrics, preprocess_generated_molecules
 
@@ -138,7 +138,7 @@ def prepare_model_and_dataset_info(
     
     rep_sampler = initilize_rep_sampler(eval_args, device, args)
         
-    from models.wrapper import SelfConditionWrappedSampler
+    from GeoRCG_models.wrapper import SelfConditionWrappedSampler
     self_conditioned_sampler = SelfConditionWrappedSampler(
         pcdm_sampler=generative_model,
         rdm_sampler=rep_sampler

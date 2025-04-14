@@ -213,11 +213,11 @@ multirun/
 /unimol_pretrain_save/
 /paper_draw/
 prop_dist_samples*
-/models/unimol/example_data/
-/models/unimol/conformation_generation
-/models/unimol/ckpts
-/models/unimol/Uni-Core/
-/models/unimol/example_data/
+/GeoRCG_models/unimol/example_data/
+/GeoRCG_models/unimol/conformation_generation
+/GeoRCG_models/unimol/ckpts
+/GeoRCG_models/unimol/Uni-Core/
+/GeoRCG_models/unimol/example_data/
 /eval_src/vis_notebooks/data/
 dsgdb9nsd.xyz*
 sweep_grid.pdf
@@ -244,7 +244,7 @@ hydra_logs/
 # ppt.ipynb
 ICLR_submit/
 mad_pred_mean_label_pairs*
-models/unimol/datas
+GeoRCG_models/unimol/datas
 lightning_logs/
 SBDD/
 semlaflow/original_checkpoints/

@@ -5,7 +5,7 @@ import os
 import torch
 import time
 from qm9.sampling import sample
-from models.rep_samplers import *
+from GeoRCG_models.rep_samplers import *
 from eval_src.eval_utils import prepare_model_and_dataset_info, analyze_all_metrics
 import logging
 import torch.distributed as dist

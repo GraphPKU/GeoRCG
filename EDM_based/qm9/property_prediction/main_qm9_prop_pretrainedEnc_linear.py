@@ -8,7 +8,7 @@ from qm9.property_prediction import prop_utils
 import json
 from qm9 import dataset, utils
 import pickle
-from models.encoders import initialize_encoder, get_global_representation
+from GeoRCG_models.encoders import initialize_encoder, get_global_representation
 import numpy as np
 loss_l1 = nn.L1Loss()
 

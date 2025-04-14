@@ -19,15 +19,15 @@ import os
 import torch
 from omegaconf import OmegaConf
 import torch.distributed as dist
-import models.util.misc as misc
-from models.rdm.models.diffusion.ddim import DDIMSampler
+import GeoRCG_models.util.misc as misc
+from GeoRCG_models.rdm.models.diffusion.ddim import DDIMSampler
 from utils import  reduced_mean
 from qm9.utils import prepare_context, compute_mean_mad
 import copy
 import datetime
 from omegaconf.listconfig import ListConfig
-from models.rep_samplers import *
-from models.encoders import initialize_encoder
+from GeoRCG_models.rep_samplers import *
+from GeoRCG_models.encoders import initialize_encoder
 
 
 def dist_setup():
@@ -220,7 +220,7 @@ def main(args):
 
     # Set up the sampler
     rep_sampler = initilize_rep_sampler(pcdm_args, device, pcdm_args)
-    from models.wrapper import SelfConditionWrappedSampler
+    from GeoRCG_models.wrapper import SelfConditionWrappedSampler
     sampler = SelfConditionWrappedSampler(pcdm_sampler=model_ema, rdm_sampler=rep_sampler)
 
 

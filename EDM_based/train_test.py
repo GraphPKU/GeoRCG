@@ -11,7 +11,7 @@ from qm9 import losses
 import time
 import torch
 from utils import dist_wandb_log, dist_print, reduced_mean
-from models.encoders import get_global_representation
+from GeoRCG_models.encoders import get_global_representation
 import torch.distributed as dist
 from torch.nn import functional as F
 
