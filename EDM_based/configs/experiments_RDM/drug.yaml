@@ -1,14 +1,3 @@
-defaults:
-  - _self_
-
-hydra:
-  sweep:
-    dir: ./hydra_logs/rdm_train/drug/${rdm_args.exp_name}_${now:%Y-%m-%d_%H-%M-%S}/
-  run:
-    dir: ./hydra_logs/rdm_train/drug/${rdm_args.exp_name}_${now:%Y-%m-%d_%H-%M-%S}/
-
-
-
 rdm_args:
   # Training parameters
   batch_size: 128 # Batch size per GPU (effective batch size is batch_size * accum_iter * # gpus)

@@ -16,6 +16,7 @@ rdm_args:
   no_wandb: false # Disable wandb
   online: true # true = wandb online -- false = wandb offline
   exp_name: 'rdm_batch128_pretrainedEncCrossAttn_LUMO'
+  vis_interval: 200
 
   # Optimizer parameters
   weight_decay: 0.005 # weight decay (default: 0.05)

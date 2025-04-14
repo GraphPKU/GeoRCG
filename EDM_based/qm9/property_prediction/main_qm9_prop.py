@@ -20,8 +20,6 @@ def train(model, epoch, loader, mean, mad, property, device, partition='train', 
     if output_molecules:
         molecules = {'one_hot': [], 'x': [], 'node_mask': []}
         
-    pairs = []
-        
     for i, data in enumerate(loader):
         if partition == 'train':
             model.train()
@@ -90,12 +88,6 @@ def train(model, epoch, loader, mean, mad, property, device, partition='train', 
             optimizer.step()
         else:
             loss = loss_l1(mad * pred + mean, label)
-            
-            adjusted_pred = mad * pred + mean  # Adjust the prediction
-            
-            # Save the (mad * pred + mean, label) pairs
-            for p, l in zip(adjusted_pred.cpu().detach().numpy(), label.cpu().detach().numpy()):
-                pairs.append((p, l))  # Collect each (pred, label) pair
 
         res['loss'] += loss.item() * batch_size
         res['counter'] += batch_size
@@ -109,14 +101,6 @@ def train(model, epoch, loader, mean, mad, property, device, partition='train', 
             print(prefix + "Epoch %d \t Iteration %d \t loss %.4f" % (epoch, i, sum(res['loss_arr'][-10:])/len(res['loss_arr'][-10:])))
         if debug_break:
             break
-    
-    if partition != 'train':
-        pairs_file = f"mad_pred_mean_label_pairs_epoch_{epoch}.txt"
-        with open(pairs_file, 'w') as f:
-            f.write("Pred, Label\n")
-            for pred, label in pairs:
-                f.write(f"{pred}, {label}\n")
-        print(f"Saved (mad * pred + mean, label) pairs to {pairs_file}")
     
     if output_molecules:
         molecules = {key: torch.cat(molecules[key], dim=0) for key in molecules}

@@ -314,14 +314,9 @@ def initilize_rep_sampler(rep_sampler_args, device, dataset_args=None, debug=Fal
         assert rep_sampler_args.Gt_dataset is not None and rep_sampler_args.Gt_dataset == "train", "Please use train split, since the histogram of nodes are calculated using training dataset."
         assert rep_sampler_args.encoder_path is not None
         assert dataset_args is not None
-
-        try:
-            which_split = rep_sampler_args.get("which_split", "edm")
-        except:
-            which_split = "edm"
             
         if not getattr(rep_sampler_args, "midi_geom_data", False):
-            datasets, collate_fn = dataset.retrieve_dataloaders(dataset_args, raw_datasets_and_collate_fn=True, which_split=which_split)
+            datasets, collate_fn = dataset.retrieve_dataloaders(dataset_args, raw_datasets_and_collate_fn=True)
         else:
             datasets, collate_fn = dataset.retrieve_dataloaders_midi_geom(dataset_args, raw_datasets_and_collate_fn=True)
         # Set up for encoder

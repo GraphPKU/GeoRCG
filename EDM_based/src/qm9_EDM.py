@@ -161,7 +161,7 @@ def main(args):
 
     # Set up for the datasets
     dataset_info = get_dataset_info(pcdm_args.dataset, pcdm_args.remove_h)
-    dataloaders, charge_scale = dataset.retrieve_dataloaders(pcdm_args, which_split=pcdm_args.get("which_split", "edm"))
+    dataloaders, charge_scale = dataset.retrieve_dataloaders(pcdm_args)
     data_dummy = next(iter(dataloaders['train']))
     
     

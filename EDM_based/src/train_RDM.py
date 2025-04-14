@@ -1,26 +1,26 @@
-import sys
+import sys, os
 sys.path.append(".")
-import argparse
 import numpy as np
-import os
 import torch
+import time
+import datetime
+import wandb
+from omegaconf.listconfig import ListConfig
+from sklearn.manifold import TSNE
+from sklearn.metrics import silhouette_score
+import matplotlib.pyplot as plt
+import torch.distributed as dist
+from pathlib import Path
+
 import models.util.misc as misc
 from models.engine_rdm import train_one_epoch
 from omegaconf import OmegaConf
-import torch.distributed as dist
-import wandb
 from initialize_models import initialize_RDM
 from qm9 import dataset
-import datetime
-import time
 from qm9.models import DistributionNodes, DistributionProperty
 from configs.datasets_config import get_dataset_info
 from models.rep_samplers import initilize_rep_sampler
-import matplotlib.pyplot as plt
-from sklearn.manifold import TSNE
 from qm9.utils import prepare_context, compute_mean_mad
-from omegaconf.listconfig import ListConfig
-from sklearn.metrics import silhouette_score
 
 
 def vis_tsne(running_rdm_args, save_dir, epoch, n_datapoints=10000, device="cuda", inv_temp=None, gtsampler=None, nodes_dist=None, prop_dist=None):
@@ -110,13 +110,14 @@ def dist_setup():
     return rank, world_size
     
 import hydra           
-@hydra.main(config_path="../configs", config_name="drug_rdm_config.yaml", version_base="1.3")
+@hydra.main(config_path="../configs", config_name="train_RDM.yaml", version_base="1.3")
 def main(args):
     OmegaConf.set_struct(args, False)
+    args = args.experiments_RDM
     rdm_args = args.rdm_args
     model_args = args.model_args
     
-    
+    # Set up for debugging
     if rdm_args.debug:
         print("Warning: You are using the debug mode!!!")
         rdm_args.dp = False
@@ -127,13 +128,11 @@ def main(args):
     # Set up for DP
     if rdm_args.dp:
         rank, world_size = dist_setup()
-        rdm_args.rank = rank
-        rdm_args.world_size = world_size
     else:
         rank = 0
         world_size = 1
-        rdm_args.rank = rank
-        rdm_args.world_size = world_size
+    rdm_args.rank = rank
+    rdm_args.world_size = world_size
         
     torch.cuda.set_device(rank)
     device = torch.device(f"cuda")
@@ -146,76 +145,26 @@ def main(args):
     np.random.seed(seed)
 
     
-    # Set up for the datasets, data_loaders, node_dist, prop_dist, dataset_info
-    if not args.semlaflow_data:
-        data_loaders, charge_scale = dataset.retrieve_dataloaders(rdm_args)
-        data_loader_train = data_loaders["train"]
-    else:
-        data_loaders, charge_scale = dataset.semlaflow_drug_train_dataloader(rdm_args)
-        data_loader_train = data_loaders["train"]
+    # Set up for the datasets, dataloaders, dataset_info
+    data_loaders, charge_scale = dataset.retrieve_dataloaders(rdm_args)
+    data_loader_train = data_loaders['train']
     data_dummy = next(iter(data_loader_train))
-    if not args.semlaflow_data:
-        dataset_info = get_dataset_info(rdm_args.dataset, rdm_args.remove_h)
-        histogram = dataset_info['n_nodes']
-    else:
-        data_list = dataset.semlaflow_drug_train_dataloader(rdm_args, return_data_list=True)
-        lengths = [data.shape[0] for data in data_list]
-        
-        # To create a histogram
-        histogram = {}
-        for length in lengths:
-            if length not in histogram:
-                histogram[length] = 1
-            else:
-                histogram[length] += 1
-                
-        
-    nodes_dist = DistributionNodes(histogram)
-    assert rdm_args.conditioning == []
-    
-    if len(rdm_args.conditioning) > 0:
-        property_norms = compute_mean_mad(data_loaders, rdm_args.conditioning, rdm_args.dataset)
-    else:
-        property_norms = None
-    
-    
-    # prepare GtSampler
-    gt_sampler_args = {
-        "sampler": "GtSampler",
-        "Gt_dataset": "train",
-        "encoder_path": rdm_args.encoder_path,
-        "encoder_type": rdm_args.encoder_type,
-    }
-    gt_sampler_args = OmegaConf.create(gt_sampler_args)
-    if not args.semlaflow_data:
-        gtsampler = initilize_rep_sampler(gt_sampler_args, device, rdm_args)
-    else:
-        import semlaflow.flowmodels.rep_samplers as semlaflow_rep_samplers
-        rdm_args.data_path = "./data/geom/smol"
-        rdm_args.categorical_strategy = "uniform-sample"
-        gtsampler = semlaflow_rep_samplers.initilize_rep_sampler(gt_sampler_args, dataset_args=rdm_args, dataset="geom-drugs")
+
     
     # Set up for class_cond and lr and dirs
-    rdm_args.class_cond = model_args.params.get("class_cond", False)
-    assert rdm_args.class_cond == True, "At least, we need to condition on node number"
-    
+    rdm_args.class_cond = model_args.params.get("class_cond", False)    
     
     eff_batch_size = rdm_args.batch_size * rdm_args.accum_iter * world_size
-    assert rdm_args.lr is None, "We calculate the learning rate by blr."
     rdm_args.lr = rdm_args.blr * eff_batch_size
     rdm_args.output_dir = f'./outputs/rdm/{rdm_args.exp_name}/model'
     rdm_args.vis_output_dir = f'./outputs/rdm/{rdm_args.exp_name}/vis'
     rdm_args.log_dir = f'./outputs/rdm/{rdm_args.exp_name}/log'
     exp_dir = f'./outputs/rdm/{rdm_args.exp_name}'
-    if not os.path.exists(exp_dir):
-        os.mkdir(exp_dir)
-    if not os.path.exists(rdm_args.output_dir):
-        os.mkdir(rdm_args.output_dir)
-    if not os.path.exists(rdm_args.log_dir):
-        os.mkdir(rdm_args.log_dir)
-    if not os.path.exists(rdm_args.vis_output_dir):
-        os.mkdir(rdm_args.vis_output_dir)
-    
+    Path(exp_dir).mkdir(parents=True, exist_ok=True)
+    Path(rdm_args.output_dir).mkdir(parents=True, exist_ok=True)
+    Path(rdm_args.vis_output_dir).mkdir(parents=True, exist_ok=True)
+    Path(rdm_args.log_dir).mkdir(parents=True, exist_ok=True)
+
     # Set up for basic models
     model, model_without_ddp, loss_scaler, optimizer = initialize_RDM(rdm_args, model_args, device)
 
@@ -238,7 +187,27 @@ def main(args):
         if rank == 0: wandb.log({}, step=global_step) 
     else: global_step = -1
     
+    # Prepare conditioning variables
+    if len(rdm_args.conditioning) > 0:
+        property_norms = compute_mean_mad(data_loaders, rdm_args.conditioning, rdm_args.dataset)
+    else:
+        property_norms = None
+        
+        
+    # Set up for gt_sampler, which is used for visualization
+    dataset_info = get_dataset_info(rdm_args.dataset, rdm_args.remove_h)
+    nodes_dist = DistributionNodes(dataset_info['n_nodes'])
+    # prepare GtSampler
+    gt_sampler_args = {
+        "sampler": "GtSampler",
+        "Gt_dataset": "train",
+        "encoder_path": rdm_args.encoder_path,
+        "encoder_type": rdm_args.encoder_type,
+    }
+    gtsampler = initilize_rep_sampler(OmegaConf.create(gt_sampler_args), device, rdm_args)
     
+    
+    # Now, we can start training.
     for epoch in range(rdm_args.start_epoch, rdm_args.epochs):
         data_loader_train.sampler.set_epoch(epoch)
         train_stats = train_one_epoch(
@@ -251,16 +220,13 @@ def main(args):
             misc.save_model_last(
                 args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
                 loss_scaler=loss_scaler, epoch=epoch)
-            if rdm_args.output_dir and (epoch % 20 == 0 or epoch + 1 == rdm_args.epochs):
+            if rdm_args.output_dir and (epoch % rdm_args.vis_interval == 0 or epoch + 1 == rdm_args.epochs):
                 misc.save_model(
                     args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
                     loss_scaler=loss_scaler, epoch=epoch)
                 s = time.time()
                 if not rdm_args.debug:
                     vis_tsne(running_rdm_args=rdm_args, save_dir=rdm_args.vis_output_dir, epoch=epoch, inv_temp=1.0, device=device, nodes_dist=nodes_dist, gtsampler=gtsampler)
-                # vis_tsne(running_rdm_args=rdm_args, save_dir=rdm_args.vis_output_dir, epoch=epoch, inv_temp=2.0, device=device, nodes_dist=nodes_dist, gtsampler=gtsampler)
-                # vis_tsne(running_rdm_args=rdm_args, save_dir=rdm_args.vis_output_dir, epoch=epoch, inv_temp=3.0, device=device, nodes_dist=nodes_dist, gtsampler=gtsampler)
-                # vis_tsne(running_rdm_args=rdm_args, save_dir=rdm_args.vis_output_dir, epoch=epoch, inv_temp=4.0, device=device, nodes_dist=nodes_dist, gtsampler=gtsampler)
                 print(f"Visualization took {time.time() - s}s.")
             
             wandb.log(train_stats, commit=True)
@@ -271,5 +237,4 @@ def main(args):
 
 
 if __name__ == "__main__":
-    
     main()

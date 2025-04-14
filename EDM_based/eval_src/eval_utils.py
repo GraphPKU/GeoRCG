@@ -113,11 +113,7 @@ def prepare_model_and_dataset_info(
     # Retrieve QM9 dataloaders
     dataloaders, charge_scale = dataset.retrieve_dataloaders(args)
     # Handle midi evaluation
-    try:
-        which_split = eval_args.midi_args.which_split
-    except:
-        which_split = "edm"
-    dataset_info = get_dataset_info(args.dataset, args.remove_h, which_split=which_split)
+    dataset_info = get_dataset_info(args.dataset, args.remove_h)
     
     # Load PCDM model
     generative_model, nodes_dist, prop_dist = get_model(args, device, dataset_info, dataloaders['train'])

@@ -179,12 +179,7 @@ geom_no_h = {
     'with_h': False}
 
 
-def get_dataset_info(dataset_name, remove_h, which_split="edm"):
-    if which_split != "edm":
-        assert which_split == "midi"
-        assert dataset_name == "qm9" and remove_h == False
-        print("Retrieving MiDi dataset infos...")
-        return qm9_with_h_midi
+def get_dataset_info(dataset_name, remove_h):
     if dataset_name == 'qm9':
         if not remove_h:
             return qm9_with_h

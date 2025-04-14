@@ -54,7 +54,6 @@ eval_midi: false
 midi_args:
   use_openbabel: false
   mol_num_limit: null
-  which_split: edm
 
 
 ddim_S: null

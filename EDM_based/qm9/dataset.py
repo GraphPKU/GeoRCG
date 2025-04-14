@@ -58,12 +58,10 @@ def retrieve_dataloaders(cfg, raw_datasets_and_collate_fn=False):
         dataset_info = get_dataset_info(cfg.dataset, cfg.remove_h)
 
         # Retrieve QM9 dataloaders
-        print("Loading geom data ...")
         split_data = build_geom_dataset.load_split_data(cfg.data_file,
                                                         val_proportion=0.1,
                                                         test_proportion=0.1,
                                                         filter_size=cfg.filter_molecule_size)
-        print("Geom data loaded.")
         transform = build_geom_dataset.GeomDrugsTransform(dataset_info,
                                                           cfg.include_charges,
                                                           cfg.device,

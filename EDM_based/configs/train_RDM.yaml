@@ -1,0 +1,12 @@
+defaults:
+  - experiments_RDM: qm9_uncond
+  - _self_
+
+
+
+hydra:
+  sweep:
+    dir: ./hydra_logs/rdm_train/${experiments_RDM.rdm_args.dataset}/${experiments_RDM.rdm_args.exp_name}_${now:%Y-%m-%d_%H-%M-%S}/
+  run:
+    dir: ./hydra_logs/rdm_train/${experiments_RDM.rdm_args.dataset}/${experiments_RDM.rdm_args.exp_name}_${now:%Y-%m-%d_%H-%M-%S}/
+

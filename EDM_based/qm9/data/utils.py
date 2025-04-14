@@ -11,7 +11,7 @@ from qm9.data.prepare import prepare_dataset
 
 def initialize_datasets(args, datadir, dataset, subset=None, splits=None,
                         force_download=False, subtract_thermo=False,
-                        remove_h=False, which_split="edm"):
+                        remove_h=False):
     """
     Initialize datasets.
 
@@ -51,14 +51,13 @@ def initialize_datasets(args, datadir, dataset, subset=None, splits=None,
     -----
     TODO: Delete the splits argument.
     """
-    assert dataset == "qm9" or which_split == "edm", "Other split is only used for qm9 dataset."
     # Set the number of points based upon the arguments
     num_pts = {'train': args.num_train,
                'test': args.num_test, 'valid': args.num_valid}
 
     # Download and process dataset. Returns datafiles.
     datafiles = prepare_dataset(
-        datadir, 'qm9', subset, splits, force_download=force_download, which_split=which_split)
+        datadir, 'qm9', subset, splits, force_download=force_download)
 
     # Load downloaded/processed datasets
     datasets = {}
