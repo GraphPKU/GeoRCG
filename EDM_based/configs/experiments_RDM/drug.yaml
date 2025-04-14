@@ -16,6 +16,7 @@ rdm_args:
   no_wandb: false # Disable wandb
   online: true # true = wandb online -- false = wandb offline
   exp_name: 'test'
+  vis_interval: 2
 
   # Optimizer parameters
   weight_decay: 0.005 # weight decay (default: 0.05)
@@ -29,14 +30,15 @@ rdm_args:
   filter_n_atoms: null # When set to an integer value, QM9 will only contain molecules of that amount of atoms
   remove_h: false
   include_charges: false # include atom charge or not
+  conditioning: []
 
   data_file: './data/geom/geom_drugs_30.npy'
   sequential: False
   filter_molecule_size: null
   dataset: geom
 
-  encoder_type: frad
-  encoder_path: ../checkpoints/encoder_ckpts/Drug_epoch7.ckpt
+  encoder_type: unimol
+  encoder_path: ../checkpoints/encoder_ckpts/unimol_drug.pt
 
   # Debug
   debug: false
