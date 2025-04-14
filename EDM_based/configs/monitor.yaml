@@ -22,11 +22,11 @@ DDP: true
 DDP_port: 29000
 DDP_nproc_per_node: 2
 
-subprocess_args: "pcdm_args.exp_name=unimol_noise0.4"
+subprocess_args: "gen_args.exp_name=unimol_noise0.4"
 monitor_interval: 10 # Check every two minites
 
 output_dir: outputs # The checkpoint dir
-version_arg_name: "pcdm_args.exp_name" # The arg name of the version, which is used to save ckpt. This enables the monitor to extract the checkpoint name
+version_arg_name: "gen_args.exp_name" # The arg name of the version, which is used to save ckpt. This enables the monitor to extract the checkpoint name
 last_ckpt_name: null
-resume_arg_name: "pcdm_args.resume" # This enables the monitor to set the resuming.
+resume_arg_name: "gen_args.resume" # This enables the monitor to set the resuming.
 script_name: self_condition_train_drug

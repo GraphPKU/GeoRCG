@@ -85,28 +85,28 @@ def prepare_model_and_dataset_info(
         prop_dist_condition.set_normalizer(property_norms)
 
 
-    # Load the PCDM model args
-    assert eval_args.pcdm_model_path is not None
-    with open(join(eval_args.pcdm_model_path, 'args.pickle'), 'rb') as f:
+    # Load the gen model args
+    assert eval_args.gen_model_path is not None
+    with open(join(eval_args.gen_model_path, 'args.pickle'), 'rb') as f:
         args = pickle.load(f)
-    pcdm_args = args.pcdm_args
-    if pcdm_args.get("attn_dropout", None) is None:
-        pcdm_args.attn_dropout = 0.
-    # Modify the pcdm_args for sampling
+    gen_args = args.gen_args
+    if gen_args.get("attn_dropout", None) is None:
+        gen_args.attn_dropout = 0.
+    # Modify the gen_args for sampling
     if eval_args.cfg is not None:
-        print(f"Warning: Changing pcdm_args.cfg to {eval_args.cfg}")
-        pcdm_args.cfg = eval_args.cfg
+        print(f"Warning: Changing gen_args.cfg to {eval_args.cfg}")
+        gen_args.cfg = eval_args.cfg
     
-    # Replace the  args with pcdm_args
-    args = pcdm_args
+    # Replace the  args with gen_args
+    args = gen_args
     # For retrivial datasets
-    pcdm_args.device = str(device)
-    pcdm_args.world_size = 1
-    pcdm_args.rank = 0
+    gen_args.device = str(device)
+    gen_args.world_size = 1
+    gen_args.rank = 0
     
     
     utils.create_folders(args)
-    # print(f"pcdm_args: {args}")
+    # print(f"gen_args: {args}")
     # print(f"eval_args: {eval_args}")
     
 
@@ -115,9 +115,9 @@ def prepare_model_and_dataset_info(
     # Handle midi evaluation
     dataset_info = get_dataset_info(args.dataset, args.remove_h)
     
-    # Load PCDM model
+    # Load gen model
     generative_model, nodes_dist, prop_dist = get_model(args, device, dataset_info, dataloaders['train'])
-    assert prop_dist is None, "We only use unconditional pcdm."
+    assert prop_dist is None, "We only use unconditional gen."
     if prop_dist is not None:
         property_norms = compute_mean_mad(dataloaders, args.conditioning, args.dataset)
         prop_dist.set_normalizer(property_norms)
@@ -129,7 +129,7 @@ def prepare_model_and_dataset_info(
     generative_model.eval()
 
     fn = 'generative_model_ema.npy' if args.ema_decay > 0 else 'generative_model.npy'
-    flow_state_dict = torch.load(join(eval_args.pcdm_model_path, fn), map_location=device)
+    flow_state_dict = torch.load(join(eval_args.gen_model_path, fn), map_location=device)
     load_profiles = generative_model.load_state_dict(flow_state_dict, strict=False)
     print(load_profiles)
     assert len(load_profiles.missing_keys) == 0
@@ -140,11 +140,11 @@ def prepare_model_and_dataset_info(
         
     from GeoRCG_models.wrapper import SelfConditionWrappedSampler
     self_conditioned_sampler = SelfConditionWrappedSampler(
-        pcdm_sampler=generative_model,
+        gen_sampler=generative_model,
         rdm_sampler=rep_sampler
     )
     
-    return self_conditioned_sampler, pcdm_args, nodes_dist, prop_dist, dataset_info
+    return self_conditioned_sampler, gen_args, nodes_dist, prop_dist, dataset_info
 
 
 

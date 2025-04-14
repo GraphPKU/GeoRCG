@@ -30,9 +30,9 @@ def sample_visualize(molecules, target_path, dataset_info, id_from=0, name="unco
         )
     
 
-def molecule_sampling_prop(eval_args, device, self_conditioned_sampler, pcdm_args, nodes_dist, prop_dist, dataset_info):
+def molecule_sampling_prop(eval_args, device, self_conditioned_sampler, gen_args, nodes_dist, prop_dist, dataset_info):
     molecules, prop = sample_loop(
-        pcdm_args, 
+        gen_args, 
         device, 
         self_conditioned_sampler,
         nodes_dist, 
@@ -41,7 +41,7 @@ def molecule_sampling_prop(eval_args, device, self_conditioned_sampler, pcdm_arg
         n_samples=eval_args.n_samples,
         batch_size=eval_args.batch_size_gen, 
         save_molecules=eval_args.save_molecules,
-        pcdm_model_path=eval_args.pcdm_model_path,
+        gen_model_path=eval_args.gen_model_path,
         return_prop=True
         )
     return molecules, prop
@@ -51,7 +51,7 @@ def main(args):
     OmegaConf.set_struct(args, False)
     # Initialize Sampler and dataset info. 
     device = "cuda"
-    self_conditioned_sampler, pcdm_args, nodes_dist, prop_dist, dataset_info = prepare_model_and_dataset_info(args, device, only_dataset_info=(args.saved_molecules_path is not None)) # If one load saved molecules, then only dataset info is needed.
+    self_conditioned_sampler, gen_args, nodes_dist, prop_dist, dataset_info = prepare_model_and_dataset_info(args, device, only_dataset_info=(args.saved_molecules_path is not None)) # If one load saved molecules, then only dataset info is needed.
     
     
     
@@ -59,7 +59,7 @@ def main(args):
     
     if args.sweep:
         molecules, property_values = molecule_sampling_sweep(
-            pcdm_args, 
+            gen_args, 
             device=device,
             model=self_conditioned_sampler,
             prop_dist=prop_dist,
@@ -90,10 +90,10 @@ def main(args):
         )
     else:
         if args.property is None:
-            molecules = molecule_sampling(args, device, self_conditioned_sampler, pcdm_args, nodes_dist, prop_dist, dataset_info)
+            molecules = molecule_sampling(args, device, self_conditioned_sampler, gen_args, nodes_dist, prop_dist, dataset_info)
             name = "unconditional_random" 
         else:
-            molecules, prop = molecule_sampling_prop(args, device, self_conditioned_sampler, pcdm_args, nodes_dist, prop_dist, dataset_info)
+            molecules, prop = molecule_sampling_prop(args, device, self_conditioned_sampler, gen_args, nodes_dist, prop_dist, dataset_info)
             name = "conditional_random"
         current_time = datetime.datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
         target_path = Path(f"./eval_src/visualize_results/{name}_{current_time}/")

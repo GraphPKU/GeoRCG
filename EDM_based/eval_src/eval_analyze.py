@@ -1,6 +1,5 @@
 import sys
 sys.path.append(".")
-import argparse
 import os
 import torch
 import time
@@ -13,9 +12,9 @@ import datetime
 from pathlib import Path
 
 def sample_loop(
-    pcdm_args, device, generative_model,
+    gen_args, device, generative_model,
     nodes_dist, prop_dist, dataset_info, n_samples=10,
-    batch_size=10, save_molecules=False, pcdm_model_path=None, return_prop=False, ddim_S=None
+    batch_size=10, save_molecules=False, gen_model_path=None, return_prop=False, ddim_S=None
     ):
     
     batch_size = min(batch_size, n_samples)
@@ -40,7 +39,7 @@ def sample_loop(
         
         
         one_hot, charges, x, node_mask = sample(
-            pcdm_args, device, generative_model, dataset_info, prop_dist=None, nodesxsample=nodesxsample,
+            gen_args, device, generative_model, dataset_info, prop_dist=None, nodesxsample=nodesxsample,
             rep_context=rep_context, context=None, ddim_S=ddim_S
             )
 
@@ -52,14 +51,14 @@ def sample_loop(
     molecules = {key: torch.cat(molecules[key], dim=0) for key in molecules}
 
     if save_molecules: # NOTE: This saves molecules in .pth form (dict), not xyz. The dict is like {'one_hot': tensor of shape (sample_num, max_node_num, one_hot_dim), 'x': ..., 'node_mask': ...}. Please manually convert it to xyz or other files you like, with the specific dataset_info.
-        assert pcdm_model_path is not None, "Please specify the pcdm_model_path for molecule saving!"
+        assert gen_model_path is not None, "Please specify the gen_model_path for molecule saving!"
         timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
         save_molecules_file_name = f"molecules_{n_samples}_{timestamp}.pt"
-        assert Path(pcdm_model_path).exists(), f"Please ensure {Path(pcdm_model_path)}'s existance!"
-        if not Path(pcdm_model_path).is_dir():
-            save_molecules_dir = Path(pcdm_model_path).parent / "eval"/ "molecules"
+        assert Path(gen_model_path).exists(), f"Please ensure {Path(gen_model_path)}'s existance!"
+        if not Path(gen_model_path).is_dir():
+            save_molecules_dir = Path(gen_model_path).parent / "eval"/ "molecules"
         else:
-            save_molecules_dir = Path(pcdm_model_path) / "eval"/  "molecules"
+            save_molecules_dir = Path(gen_model_path) / "eval"/  "molecules"
         save_molecules_dir.mkdir(parents=True, exist_ok=True)
         save_molecules_path = save_molecules_dir / save_molecules_file_name
             
@@ -75,9 +74,9 @@ def sample_loop(
 
 
 
-def molecule_sampling(eval_args, device, self_conditioned_sampler, pcdm_args, nodes_dist, prop_dist, dataset_info):
+def molecule_sampling(eval_args, device, self_conditioned_sampler, gen_args, nodes_dist, prop_dist, dataset_info):
     molecules = sample_loop(
-        pcdm_args, 
+        gen_args, 
         device, 
         self_conditioned_sampler,
         nodes_dist, 
@@ -86,7 +85,7 @@ def molecule_sampling(eval_args, device, self_conditioned_sampler, pcdm_args, no
         n_samples=eval_args.n_samples,
         batch_size=eval_args.batch_size_gen, 
         save_molecules=eval_args.save_molecules,
-        pcdm_model_path=eval_args.pcdm_model_path,
+        gen_model_path=eval_args.gen_model_path,
         ddim_S=eval_args.ddim_S
         )
     return molecules
@@ -94,7 +93,7 @@ def molecule_sampling(eval_args, device, self_conditioned_sampler, pcdm_args, no
 
 
 
-def molecule_sampling_ddp(eval_args, device, self_conditioned_sampler, pcdm_args, nodes_dist, prop_dist, dataset_info):
+def molecule_sampling_ddp(eval_args, device, self_conditioned_sampler, gen_args, nodes_dist, prop_dist, dataset_info):
     def dist_setup():
         assert torch.cuda.device_count() > 1, "Only one cuda but using distributed training."
         dist.init_process_group("nccl", timeout=datetime.timedelta(minutes=4320))
@@ -125,7 +124,7 @@ def molecule_sampling_ddp(eval_args, device, self_conditioned_sampler, pcdm_args
 
 
         # Prepare the model and dataset information
-        self_conditioned_sampler, pcdm_args, nodes_dist, prop_dist, dataset_info = prepare_model_and_dataset_info(eval_args, device)
+        self_conditioned_sampler, gen_args, nodes_dist, prop_dist, dataset_info = prepare_model_and_dataset_info(eval_args, device)
         
         # Wrap the model with DistributedDataParallel
         generative_model = self_conditioned_sampler.to(device)
@@ -135,7 +134,7 @@ def molecule_sampling_ddp(eval_args, device, self_conditioned_sampler, pcdm_args
 
         # Perform the sampling
         molecules = sample_loop(
-            pcdm_args, device, generative_model,
+            gen_args, device, generative_model,
             nodes_dist, prop_dist, dataset_info,
             n_samples=samples_per_rank, batch_size=eval_args.batch_size_gen, ddim_S=eval_args.ddim_S
         )
@@ -169,13 +168,13 @@ def molecule_sampling_ddp(eval_args, device, self_conditioned_sampler, pcdm_args
             if all_molecules['x'].shape[0] != eval_args.n_samples:
                 logging.info(f"Warning: only gathered {all_molecules['x'].shape[0]}/{eval_args.n_samples} molecules.")
             if eval_args.save_molecules:
-                pcdm_model_path = eval_args.pcdm_model_path
-                assert pcdm_model_path is not None, "Please specify the pcdm_model_path for molecule saving!"
+                gen_model_path = eval_args.gen_model_path
+                assert gen_model_path is not None, "Please specify the gen_model_path for molecule saving!"
                 timestamp = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-                if not Path(pcdm_model_path).is_dir():
-                    save_molecules_path = Path(pcdm_model_path).parent / f"molecules_{eval_args.n_samples}_{timestamp}.pt"
+                if not Path(gen_model_path).is_dir():
+                    save_molecules_path = Path(gen_model_path).parent / f"molecules_{eval_args.n_samples}_{timestamp}.pt"
                 else:
-                    save_molecules_path = Path(pcdm_model_path) / f"molecules_{eval_args.n_samples}_{timestamp}.pt"
+                    save_molecules_path = Path(gen_model_path) / f"molecules_{eval_args.n_samples}_{timestamp}.pt"
                 torch.save(all_molecules, save_molecules_path)
                 logging.info(f"Molecules have been saved to {save_molecules_path}")
             
@@ -215,7 +214,7 @@ def eval(args):
     OmegaConf.set_struct(args, False)
     # Initialize Sampler and dataset info. 
     device = "cuda"
-    self_conditioned_sampler, pcdm_args, nodes_dist, prop_dist, dataset_info = prepare_model_and_dataset_info(args, device, only_dataset_info=(args.saved_molecules_path is not None)) # If one load saved molecules, then only dataset info is needed.
+    self_conditioned_sampler, gen_args, nodes_dist, prop_dist, dataset_info = prepare_model_and_dataset_info(args, device, only_dataset_info=(args.saved_molecules_path is not None)) # If one load saved molecules, then only dataset info is needed.
     
     logging.info(torch.seed())
     # Load molecules
@@ -231,9 +230,9 @@ def eval(args):
         # For molecule sampling
         if args.use_dist:
             logging.info("You are using DDP sampling!!")
-            molecules, rank = molecule_sampling_ddp(args, device, self_conditioned_sampler, pcdm_args, nodes_dist, prop_dist, dataset_info)
+            molecules, rank = molecule_sampling_ddp(args, device, self_conditioned_sampler, gen_args, nodes_dist, prop_dist, dataset_info)
         else:
-            molecules = molecule_sampling(args, device, self_conditioned_sampler, pcdm_args, nodes_dist, prop_dist, dataset_info)
+            molecules = molecule_sampling(args, device, self_conditioned_sampler, gen_args, nodes_dist, prop_dist, dataset_info)
             rank = 0
 
 

@@ -93,7 +93,7 @@ def get_SelfConditionDiffusionDataloader(eval_args):
         def __len__(self):
             return self.iterations
 
-    self_conditioned_sampler, pcdm_args, nodes_dist, prop_dist, dataset_info = prepare_model_and_dataset_info(eval_args, eval_args.device)
+    self_conditioned_sampler, gen_args, nodes_dist, prop_dist, dataset_info = prepare_model_and_dataset_info(eval_args, eval_args.device)
     
     sc_diffusion_dataloader = SelfConditionDiffusionDataloader(
         model=self_conditioned_sampler,
@@ -103,7 +103,7 @@ def get_SelfConditionDiffusionDataloader(eval_args):
         batch_size=eval_args.batch_size,
         iterations=eval_args.iterations,
         dataset_info=dataset_info,
-        args_gen=pcdm_args
+        args_gen=gen_args
     )
     return sc_diffusion_dataloader
     
@@ -139,10 +139,10 @@ def main_quantitative(args):
     # Create a dataloader with the generator
     mean, mad = property_norms[args.property]['mean'], property_norms[args.property]['mad']
 
-    if args.task == 'pcdm':
+    if args.task == 'gen':
         diffusion_dataloader = get_SelfConditionDiffusionDataloader(eval_args=args)
         
-        print("PCDM: We evaluate the classifier on our generated samples")
+        print("gen: We evaluate the classifier on our generated samples")
         loss, molecules = test(classifier, 0, diffusion_dataloader, mean, mad, args.property, args.device, 1, args.debug_break, output_molecules=True)
         print("Loss classifier on Generated samples: %.4f" % loss)
         
@@ -173,7 +173,7 @@ def main(args):
 
     metrics = main_quantitative(args)
     
-    if args.task == "pcdm":
+    if args.task == "gen":
         for k, val in metrics.items():
             logger.info(f"{k}: {val}")
     

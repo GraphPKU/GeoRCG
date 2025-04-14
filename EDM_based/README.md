@@ -65,10 +65,10 @@ python src/self_condition_train_drug.py
 
 The configuration files are:
 
-- `./configs/qm9_pcdm_config.yaml` for QM9
-- `./configs/drug_pcdm_config.yaml` for GEOM-DRUG
+- `./configs/qm9_gen_config.yaml` for QM9
+- `./configs/drug_gen_config.yaml` for GEOM-DRUG
 
-We note that for the GEOM-DRUG dataset, training was conducted on two Nvidia A100 GPUs with a batch size of 64 using `torch.distributed.run`. If you lack access to resources, you can reduce the batch size to match your hardware capabilities (but may lead to different model performance). Additionally, be sure to update the `pcdm_args.encoder_path` in the configuration file with your downloaded encoder checkpoint path.
+We note that for the GEOM-DRUG dataset, training was conducted on two Nvidia A100 GPUs with a batch size of 64 using `torch.distributed.run`. If you lack access to resources, you can reduce the batch size to match your hardware capabilities (but may lead to different model performance). Additionally, be sure to update the `gen_args.encoder_path` in the configuration file with your downloaded encoder checkpoint path.
 
 In our experiments, the molecule generator is always trained unconditionally, but using datasets of different sizes. For conditional molecule generation, simply modify the dataset from `qm9` to `qm9_second_half`.
 

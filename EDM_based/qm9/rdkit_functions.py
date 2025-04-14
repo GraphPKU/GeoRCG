@@ -229,8 +229,6 @@ def retrieve_qm9_smiles(dataset_info):
 bond_dict = [None, Chem.rdchem.BondType.SINGLE, Chem.rdchem.BondType.DOUBLE, Chem.rdchem.BondType.TRIPLE,
                  Chem.rdchem.BondType.AROMATIC]
 
-from eval_src.semla_metrics import AverageEnergy, AverageStrainEnergy
-from semlaflow.util.rdkit import mol_from_atoms
 class BasicMolecularMetrics(object):
     def __init__(self, dataset_info, dataset_smiles_list=None):
         self.atom_decoder = dataset_info['atom_decoder']
@@ -241,13 +239,6 @@ class BasicMolecularMetrics(object):
         if dataset_smiles_list is None and 'qm9' in dataset_info['name']:
             self.dataset_smiles_list = retrieve_qm9_smiles(
                 self.dataset_info)
-        
-        
-        # For energy and strain calculation introduced in SemlaFlow
-        self.energy_metric = AverageEnergy()
-        self.energy_per_atom_metric = AverageEnergy(per_atom=True)
-        self.strain_energy_metric = AverageStrainEnergy()
-        self.strain_energy_per_atom_metric = AverageStrainEnergy(per_atom=True)
 
     def compute_validity(self, generated):
         """ generated: list of couples (positions, atom_types)"""
@@ -262,42 +253,6 @@ class BasicMolecularMetrics(object):
                 smiles = mol2smiles(largest_mol)
                 valid.append(smiles)
         return valid, len(valid) / len(generated)
-    
-    def compute_with_metric_fn(self, generated, metric_fn):
-        mols = []
-        for graph in tqdm(generated):
-            X, A, E = build_xae_molecule(*graph, self.dataset_info)
-            nonzero_indices = torch.nonzero(A)
-            bonds = torch.cat((nonzero_indices, E[nonzero_indices[:, 0], nonzero_indices[:, 1]].unsqueeze(1)), dim=1).numpy()
-            tokens = np.vectorize(lambda x: self.dataset_info["atom_decoder"][x])(X.numpy())
-            charges = None
-            sanitise = True
-            coords = graph[0].numpy()
-            mol = mol_from_atoms(
-                coords=coords,
-                tokens=tokens,
-                bonds=bonds,
-                charges=charges,
-                sanitise=sanitise,
-            )            
-            if mol:
-                mols.append(mol)
-                print(f"Number of atoms: {mol.GetNumAtoms()}")
-            
-            # break
-
-        print(f"Number of valid molecules: {len(mols)}")
-        metric_fn.update(mols)
-        return metric_fn.compute()
-    def compute_energy(self, generated):
-        return self.compute_with_metric_fn(generated, self.energy_metric)
-    def compute_energy_per_atom(self, generated):
-        return self.compute_with_metric_fn(generated, self.energy_per_atom_metric)
-    def compute_strain_energy(self, generated):
-        return self.compute_with_metric_fn(generated, self.strain_energy_metric)
-    def compute_strain_energy_per_atom(self, generated):
-        return self.compute_with_metric_fn(generated, self.strain_energy_per_atom_metric)
-
     def compute_uniqueness(self, valid):
         """ valid: list of SMILES strings."""
         return list(set(valid)), len(set(valid)) / len(valid)

@@ -1,0 +1,12 @@
+defaults:
+  - experiments_EDM: qm9
+  - _self_
+
+
+
+hydra:
+  sweep:
+    dir: ./hydra_logs/edm_train/${experiments_EDM.gen_args.dataset}/${experiments_EDM.gen_args.exp_name}_${now:%Y-%m-%d_%H-%M-%S}/
+  run:
+    dir: ./hydra_logs/edm_train/${experiments_EDM.gen_args.dataset}/${experiments_EDM.gen_args.exp_name}_${now:%Y-%m-%d_%H-%M-%S}/
+

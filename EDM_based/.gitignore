@@ -202,7 +202,7 @@ generated_samples/
 wandb/
 LICENSE
 checkpoints/rdm_ckpts/
-checkpoints/pcdm_ckpts/
+checkpoints/gen_ckpts/
 checkpoints/classifiers_ckpts/
 vis_reps/
 run_evals.py

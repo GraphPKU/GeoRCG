@@ -13,7 +13,7 @@ version: null
 save_molecules: false
 saved_molecules_path: null
 
-# If you use saved molecules for analysis, please specify a dataset so that the info can be loaded. (If not use the saved ones, dataset info will be retrieved from pcdm args.)
+# If you use saved molecules for analysis, please specify a dataset so that the info can be loaded. (If not use the saved ones, dataset info will be retrieved from gen args.)
 dataset: ???
 remove_h: ???
 
@@ -22,9 +22,9 @@ n_samples: 50
 batch_size_gen: 50
 property: null
 
-# PCDM Sampler Parameters
+# gen Sampler Parameters
 cfg: 1.0
-pcdm_model_path: ???
+gen_model_path: ???
 
 # RDM Sampler Parameters
 sampler: GtSampler

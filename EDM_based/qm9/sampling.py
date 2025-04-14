@@ -51,7 +51,7 @@ def reverse_tensor(x):
 
 
 def sample_chain(args, device, flow, n_tries, dataset_info, prop_dist=None, rep_context=None, keep_frames=100):
-    assert args.context_node_nf == 0 and prop_dist is None and rep_context is None, "Only support unconditional pcdm and unconditional rdm now"
+    assert args.context_node_nf == 0 and prop_dist is None and rep_context is None, "Only support unconditional gen and unconditional rdm now"
 
     
     
