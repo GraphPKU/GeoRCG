@@ -113,46 +113,13 @@ def main(args):
     # Set up for encoder
     encoder = initialize_encoder(encoder_type=gen_args.encoder_type, device=device, encoder_ckpt_path=gen_args.encoder_path)
     
-    if gen_args.finetune_encoder:
-        print("\n\nIMPORTANT: You are finetuning the encoder in diffusion tasks!!!\n\n")
-        from torch.optim import AdamW
-        from torch.optim.lr_scheduler import ReduceLROnPlateau, CosineAnnealingLR
-        encoder_optimizer = AdamW(
-            encoder.parameters(),
-            lr=gen_args.encoder_lr,
-            weight_decay=gen_args.encoder_weight_decay,
-        )
-        encoder_scheduler = ReduceLROnPlateau(
-            encoder_optimizer,
-            "min",
-            factor=gen_args.encoder_factor,
-            patience=gen_args.encoder_patience,
-            min_lr=gen_args.encoder_min_lr,
-        )
-        
-        
-        # We change the EGNN for denoising to a light output head, so that the fine-tuning is concentrated on the encoder.
-        gen_args.n_layers = gen_args.light_n_layers
-        gen_args.nf = gen_args.light_nf
-        # We use no regularization during encoder finetuning.
-        if gen_args.attn_dropout > 0. or gen_args.noise_sigma > 0.:
-            print(f"Warning: You are finetuning the encoder with attn_dropout {gen_args.attn_dropout} and noise_sigma {gen_args.noise_sigma}. We by default set them to 0.")
-            gen_args.attn_dropout = 0.
-            gen_args.noise_sigma = 0.
-        
-        
-    else:
-        for param in encoder.parameters():
-            param.requires_grad = False
-        encoder.eval()
-        encoder_optimizer = None
-        encoder_scheduler = None
-        
-    if gen_args.finetune_encoder and gen_args.dp:
-        encoder_dp = torch.nn.parallel.DistributedDataParallel(encoder, find_unused_parameters=True)
-        assert encoder_dp.module is encoder
-    else:
-        encoder_dp = encoder
+    
+    for param in encoder.parameters():
+        param.requires_grad = False
+    encoder.eval()
+    encoder_optimizer = None
+    encoder_scheduler = None
+    encoder_dp = encoder
     
     
     
@@ -232,11 +199,7 @@ def main(args):
     gradnorm_queue = utils.Queue()
     gradnorm_queue.add(3000)  # Add large value that will be flushed.
     
-    if gen_args.finetune_encoder:
-        encoder_gradnorm_queue = utils.Queue()
-        encoder_gradnorm_queue.add(3000)  # Add large value that will be flushed.
-    else:
-        encoder_gradnorm_queue=None
+    encoder_gradnorm_queue=None
     # Print meta informations
     if rank == 0:
         print(f"Args: {args}")
@@ -277,7 +240,7 @@ def main(args):
             if isinstance(model, en_diffusion.EnVariationalDiffusion) and rank == 0:
                 wandb.log(model.log_info(), commit=True)
 
-            if not gen_args.break_train_epoch and rank == 0  and not gen_args.finetune_encoder and len(gen_args.conditioning) == 0:
+            if not gen_args.break_train_epoch and rank == 0 and len(gen_args.conditioning) == 0:
                 analyze_and_save(args=gen_args, epoch=epoch, model_sample=sampler, nodes_dist=nodes_dist,
                                  dataset_info=dataset_info, device=device,
                                  prop_dist=prop_dist, n_samples=gen_args.n_stability_samples,
@@ -297,9 +260,6 @@ def main(args):
                 nll_val = nll_epoch_val / n_samples_val
                 nll_test = nll_epoch_test / n_samples_test
             
-            if gen_args.finetune_encoder:
-                encoder_scheduler.step(nll_val)
-            
             if rank == 0:
                 if nll_val < best_nll_val:
                     best_nll_val = nll_val
@@ -313,11 +273,6 @@ def main(args):
                         with open('outputs/%s/args.pickle' % gen_args.exp_name, 'wb') as f:
                             pickle.dump(args, f)
                         
-                        if gen_args.finetune_encoder:
-                            encoder_checkpoint = {
-                                'state_dict': encoder.state_dict(),
-                            }
-                            torch.save(encoder_checkpoint, gen_args.finetune_save_path)
 
                     if gen_args.save_model and rank == 0:
                         utils.save_model(optim, 'outputs/%s/optim_%d.npy' % (gen_args.exp_name, epoch))

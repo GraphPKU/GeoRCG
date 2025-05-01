@@ -101,7 +101,6 @@ gen_args:
   encoder_path: "../checkpoints/encoder_ckpts/QM9.ckpt" 
   rep_nf: 256
 
-  finetune_encoder: false
   encoder_lr: 1e-4
   encoder_weight_decay: 0.
   encoder_factor: 0.8

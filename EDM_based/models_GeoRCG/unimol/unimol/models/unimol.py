@@ -449,6 +449,7 @@ class GaussianLayer(nn.Module):
 @register_model_architecture("unimol", "unimol")
 def base_architecture(args):
     args.encoder_layers = getattr(args, "encoder_layers", 15)
+    print(f"We are using {args.encoder_layers} layers")
     args.encoder_embed_dim = getattr(args, "encoder_embed_dim", 512)
     args.encoder_ffn_embed_dim = getattr(args, "encoder_ffn_embed_dim", 2048)
     args.encoder_attention_heads = getattr(args, "encoder_attention_heads", 64)

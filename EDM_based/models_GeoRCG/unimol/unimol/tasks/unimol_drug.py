@@ -4,7 +4,7 @@
 
 import logging
 import os, sys
-
+from pathlib import Path
 import numpy as np
 from unicore.data import (
     Dictionary,
@@ -33,14 +33,33 @@ from unimol.data import (
     LMDBDataset,
     TTADataset,
 )
+from unicore.data import BaseWrapperDataset
+
 from unicore.tasks import UnicoreTask, register_task
 from unicore import checkpoint_utils
 import torch
-from pathlib import Path
-import numpy as np
+
+
+
 logger = logging.getLogger(__name__)
 
+class ComposedDataset:
+    def __init__(self, dataset_list):
+        self.dataset_list = dataset_list
+        
+        print(f"ComposedDataset: {len(self.dataset_list)} datasets")
+        for i, dataset in enumerate(self.dataset_list):
+            print(f"Dataset {i} {dataset.__class__.__name__}: {len(dataset)}")
 
+    def __len__(self):
+        return sum([len(dataset) for dataset in self.dataset_list])
+    def __getitem__(self, idx):
+        for dataset in self.dataset_list:
+            if idx < len(dataset):
+                return dataset[idx]
+            else:
+                idx -= len(dataset)
+        raise IndexError
 
 class DrugDataset:
     def __init__(self, db_path, split):
@@ -102,8 +121,10 @@ class DrugDataset:
         return {"smi": smi, "atoms": atoms, "coordinates": coordinates}
 
 
+
+
 @register_task("unimol_drug")
-class UniMolDrugTask(UnicoreTask):
+class UniMolDrugMoreTask(UnicoreTask):
     """Task for training transformer auto-encoder models."""
 
     @staticmethod
@@ -114,6 +135,12 @@ class UniMolDrugTask(UnicoreTask):
             help="colon separated path to data directories list, \
                             will be iterated upon during epochs in round-robin manner",
         )
+        parser.add_argument(
+            "--data_ligands",
+            help="colon separated path to data directories list, \
+                            will be iterated upon during epochs in round-robin manner",
+        )
+
         parser.add_argument(
             "--mask-prob",
             default=0.15,
@@ -177,6 +204,14 @@ class UniMolDrugTask(UnicoreTask):
             type=int,
             help="number of conformers generated with each molecule",
         )
+        
+        parser.add_argument(
+            "--finetune-mol-model",
+            default=None,
+            type=str,
+            help="",
+        )
+        
 
     def __init__(self, args, dictionary):
         super().__init__(args)
@@ -202,11 +237,22 @@ class UniMolDrugTask(UnicoreTask):
         Args:
             split (str): name of the split (e.g., train, valid, test)
         """
-        raw_dataset = DrugDataset(Path(self.args.data) / "geom_drugs_30.npy", split)
+        
+        
+        
+        split_path = os.path.join(self.args.data_ligands, split + ".lmdb")
+        raw_dataset_ligands = LMDBDataset(split_path)
+        raw_dataset_ligands = Add2DConformerDataset(
+                    raw_dataset_ligands, "smi", "atoms", "coordinates"
+                )
+        raw_dataset_drug = DrugDataset(Path(self.args.data) / "geom_drugs_30.npy", split)
+        
+        
+        raw_dataset = ComposedDataset([raw_dataset_ligands, raw_dataset_drug])
+        
 
         def one_dataset(raw_dataset, coord_seed, mask_seed):
             if self.args.mode =='train':
-
                 smi_dataset = KeyDataset(raw_dataset, "smi")
                 dataset = ConformerSampleDataset(
                     raw_dataset, coord_seed, "atoms", "coordinates"
@@ -307,7 +353,7 @@ class UniMolDrugTask(UnicoreTask):
 
         model = models.build_model(args, self)
         
-        # NOTE: We modify here to load weights
+        # # NOTE: We modify here to load weights
         if args.finetune_mol_model is not None:
             print("load pretrain model weight from...", args.finetune_mol_model)
             state = checkpoint_utils.load_checkpoint_to_cpu(

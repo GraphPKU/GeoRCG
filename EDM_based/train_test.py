@@ -21,12 +21,8 @@ def train_epoch(args, loader, epoch, model, model_dp, model_ema, ema, device, dt
                 nodes_dist, gradnorm_queue, dataset_info, prop_dist, encoder, encoder_dp, sampler, rank, encoder_optimizer=None, encoder_gradnorm_queue=None):
     model_dp.train()
     model.train()
-    if args.finetune_encoder:
-        encoder.train()
-        encoder_dp.train()
-    else:
-        encoder.eval()
-        encoder_dp.eval()
+    encoder.eval()
+    encoder_dp.eval()
     nll_epoch = []
     n_iterations = len(loader)
     loader.sampler.set_epoch(epoch)
@@ -69,7 +65,7 @@ def train_epoch(args, loader, epoch, model, model_dp, model_ema, ema, device, dt
             context = None
             
         rep = get_global_representation(node_mask, encoder_dp, x, h, noise_sigma=args.noise_sigma)
-        assert (rep.requires_grad and args.finetune_encoder) or (not rep.requires_grad and not args.finetune_encoder)
+
         
         
         
@@ -79,14 +75,12 @@ def train_epoch(args, loader, epoch, model, model_dp, model_ema, ema, device, dt
 
         # transform batch through flow
         nll, reg_term, mean_abs_z, denoised_xh = losses.compute_loss_and_nll(args, model_dp, nodes_dist,
-                                                                x, h, node_mask, edge_mask, context, rep=rep, no_logpn=args.finetune_encoder)
+                                                                x, h, node_mask, edge_mask, context, rep=rep)
         
         # Compute auxiliary loss: denoised rep alignment loss
         if args.rep_align_loss > 0.:
             assert 0, "Not used."
-            assert args.noise_sigma == 0. # Not carefully designed
-            assert not args.finetune_encoder # Since if encoder is not fixed, a large rep aligment loss could urge the encoder to produce uniform representations for all structures, which is not what we want
-            
+            assert args.noise_sigma == 0. # Not carefully designed            
             
             denoised_x = denoised_xh[:, :, :3]
             denoised_h_int = denoised_xh[:, :, -1:] if args.include_charges else torch.zeros(0).to(denoised_xh.device)
@@ -111,10 +105,7 @@ def train_epoch(args, loader, epoch, model, model_dp, model_ema, ema, device, dt
 
         if args.clip_grad:
             grad_norm = utils.gradient_clipping(model, gradnorm_queue)
-            if args.finetune_encoder:
-                encoder_gradnorm = utils.gradient_clipping(encoder, encoder_gradnorm_queue) 
-            else:
-                encoder_gradnorm = 0.
+            encoder_gradnorm = 0.
         else:
             grad_norm = 0.
             encoder_gradnorm = 0.
@@ -139,7 +130,7 @@ def train_epoch(args, loader, epoch, model, model_dp, model_ema, ema, device, dt
         if rank == 0:
             wandb.log({"Batch NLL": nll.item()}, commit=False)
             wandb.log({"Rep Align Loss": rep_l2_loss.item()}, commit=True)
-            if (epoch % args.test_epochs == 0) and (i % 1e8 == 0) and not (epoch == 0 and i == 0) and not args.finetune_encoder and len(args.conditioning) == 0: # Only perform in time evaluation when unconditionally training
+            if (epoch % args.test_epochs == 0) and (i % 1e8 == 0) and not (epoch == 0 and i == 0) and len(args.conditioning) == 0: # Only perform in time evaluation when unconditionally training
                 # If sample from train dataset, then visulization is not supported.
                 start = time.time()
                 save_and_sample_chain(sampler, args, device, dataset_info, prop_dist, epoch=epoch)
