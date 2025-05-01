@@ -334,7 +334,7 @@ class EquivariantMLP(torch.nn.Module):
 
 class NodeFeedForward(torch.nn.Module):
     def __init__(self, d_model, n_coord_sets, d_ff=None, proj_sets=None, coord_norm="length", d_rep=None, dropout=0.0,
-                 attn_block_num=None, original=True, use_gate=True, cond_type='none'):
+                 attn_block_num=None, original=True, use_gate=True):
         super().__init__()
 
         self.node_norm = torch.nn.LayerNorm(d_model)
@@ -343,8 +343,7 @@ class NodeFeedForward(torch.nn.Module):
         self.invariant_mlp = LengthsMLP(d_model, n_coord_sets, d_ff=d_ff)
         self.equivariant_mlp = EquivariantMLP(d_model, n_coord_sets, proj_sets=proj_sets)
 
-        self.cond_type = cond_type
-        if d_rep is not None and not original and cond_type != 'none':
+        if d_rep is not None and not original:
             self.attn = nn.ModuleList([BasicTransformerBlock(
                 dim=d_model,
                 n_heads=4,
@@ -354,15 +353,7 @@ class NodeFeedForward(torch.nn.Module):
                 self_attention=False,
                 use_gate=use_gate
             )
-                for _ in range(attn_block_num)]) if cond_type == 'cross_attn' else \
-            nn.ModuleList([DiTBlock(
-                hidden_size=d_model,
-                num_heads=4,
-                mlp_ratio=4.0,
-                dropout=dropout,
-                context_dim=d_rep
-            )
-                for _ in range(attn_block_num)])
+                for _ in range(attn_block_num)]) 
 
 
         self.original = original
@@ -380,7 +371,7 @@ class NodeFeedForward(torch.nn.Module):
         """
         if not self.original:
             assert rep is not None, "rep is None in NodeFeedForward but original=False"
-        if rep is not None and not self.original and self.cond_type != 'none':
+        if rep is not None and not self.original:
             for layer in self.attn:
                 node_feats = layer(node_feats, context=rep.unsqueeze(1)) * node_mask[:, 0, :].unsqueeze(2)
 
@@ -468,7 +459,6 @@ class EquiMessagePassingLayer(torch.nn.Module):
             attn_block_num=1,
             original=False,
             use_gate=True,
-            cond_type="none"
     ):
         super().__init__()
 
@@ -487,7 +477,6 @@ class EquiMessagePassingLayer(torch.nn.Module):
         self.eps = eps
         self.d_rep = d_rep
         self.original = original
-        self.cond_type = cond_type
 
         d_ff = d_model * 4
         d_attn = d_model
@@ -503,7 +492,6 @@ class EquiMessagePassingLayer(torch.nn.Module):
             d_ff=d_ff,
             proj_sets=d_message,
             coord_norm=coord_norm,
-            cond_type=cond_type
         )
         self.message_ff = EdgeMessages(
             d_model,
@@ -518,8 +506,7 @@ class EquiMessagePassingLayer(torch.nn.Module):
         self.node_attn = NodeAttention(d_model, n_attn_heads, d_attn=d_attn)
 
         # TODO: initialize cross attention
-        assert cond_type in ["cross_attn", "adaLN", "none"]
-        if self.d_rep is not None and not original and self.cond_type != "none":
+        if self.d_rep is not None and not original:
             self.attn = nn.ModuleList([BasicTransformerBlock(
                 dim=d_model,
                 n_heads=n_cross_attn_heads,
@@ -528,14 +515,6 @@ class EquiMessagePassingLayer(torch.nn.Module):
                 context_dim=d_rep,
                 self_attention=False,
                 use_gate=use_gate
-            )
-                for _ in range(attn_block_num)]) if cond_type == 'cross_attn' else \
-            nn.ModuleList([DiTBlock(
-                hidden_size=d_model,
-                num_heads=n_cross_attn_heads,
-                mlp_ratio=4.0,
-                dropout=dropout,
-                context_dim=d_rep
             )
                 for _ in range(attn_block_num)])
 
@@ -564,7 +543,7 @@ class EquiMessagePassingLayer(torch.nn.Module):
             node coords, new node features and new edge features.
         """
         # TODO: complete cross attention
-        if rep is not None and not self.original and self.cond_type != 'none':
+        if rep is not None and not self.original:
             for layer in self.attn:
                 node_feats = layer(node_feats, context=rep.unsqueeze(1)) * node_mask[:, 0, :].unsqueeze(2)
 
@@ -617,8 +596,6 @@ class EquiInvDynamics(torch.nn.Module):
             dropout=None,
             original=False,
             use_gate=True,
-            sparse_rep_condition=None,
-            cond_type='none'
     ):
         super().__init__()
 
@@ -648,8 +625,6 @@ class EquiInvDynamics(torch.nn.Module):
             "attn_block_num": attn_block_num,
             "original": original,
             "use_gate": use_gate,
-            "sparse_rep_condition": sparse_rep_condition,
-            "cond_type": cond_type
         }
 
         self.d_model = d_model
@@ -657,19 +632,6 @@ class EquiInvDynamics(torch.nn.Module):
         self.d_edge = d_edge
         self.bond_refine = bond_refine and d_edge is not None
         self.self_cond = self_cond
-        if sparse_rep_condition is not None:
-            assert sparse_rep_condition in ["first", "last"]
-            assert original is False, "sparse_rep_condition is conflict with original=True"
-            print("Warning: sparse_rep_condition is activated")
-            core_original = True
-            first_original = True if sparse_rep_condition == "first" else False
-            last_original = True if sparse_rep_condition == "last" else False
-            final_original = True  # always True
-        else:
-            core_original = original
-            first_original = original
-            last_original = original
-            final_original = original
         core_layer = EquiMessagePassingLayer(
             d_model,
             d_message,
@@ -681,9 +643,8 @@ class EquiInvDynamics(torch.nn.Module):
             d_rep=d_rep,
             dropout=dropout,
             attn_block_num=attn_block_num,
-            original=core_original,
+            original=original,
             use_gate=use_gate,
-            cond_type=cond_type
         )
         layers = self._get_clones(core_layer, n_layers - extra_layers)
 
@@ -701,9 +662,8 @@ class EquiInvDynamics(torch.nn.Module):
                 d_rep=d_rep,
                 dropout=dropout,
                 attn_block_num=attn_block_num,
-                original=first_original,
+                original=original,
                 use_gate=use_gate,
-                cond_type=cond_type
             )
             out_layer = EquiMessagePassingLayer(
                 d_model,
@@ -717,9 +677,8 @@ class EquiInvDynamics(torch.nn.Module):
                 d_rep=d_rep,
                 dropout=dropout,
                 attn_block_num=attn_block_num,
-                original=last_original,
+                original=original,
                 use_gate=use_gate,
-                cond_type=cond_type
             )
             layers = [in_layer] + layers + [out_layer]
 
@@ -727,7 +686,7 @@ class EquiInvDynamics(torch.nn.Module):
 
         self.final_ff_block = NodeFeedForward(d_model, n_coord_sets, coord_norm=coord_norm,
                                               d_rep=d_rep, dropout=dropout, attn_block_num=attn_block_num,
-                                              original=final_original, use_gate=use_gate, cond_type=cond_type)
+                                              original=original, use_gate=use_gate)
         self.coord_norm = CoordNorm(n_coord_sets, norm=coord_norm)
         self.feat_norm = torch.nn.LayerNorm(d_model)
 
@@ -741,7 +700,6 @@ class EquiInvDynamics(torch.nn.Module):
         if self.bond_refine:
             self.refine_layer = BondRefine(d_model, d_message, d_edge)
 
-        self.cond_type = cond_type
         if d_rep is not None:
             # complete representation conditioning in EquiMessagePassingLayer via cross attention
             self.d_rep = d_rep

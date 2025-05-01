@@ -53,13 +53,12 @@ def build_model(args, dm, vocab):
             bond_refine=True,
             self_cond=args.self_condition,
             coord_norm=args.coord_norm,
+            
             d_rep=args.d_rep,
             attn_block_num=args.attn_block_num,
             dropout=args.dropout,
             original=args.original,
             use_gate=args.use_gate,
-            sparse_rep_condition=args.sparse_rep_condition,
-            cond_type=args.cond_type
         )
         egnn_gen = SemlaGenerator(
             args.d_model,
@@ -197,7 +196,6 @@ def build_model(args, dm, vocab):
             cfg_coef=args.cfg_coef,
             scheduled_noise=args.scheduled_noise,
             rep_loss_weight=args.rep_loss_weight,
-            time_condition=args.time_condition,
             **hparams,
             )
     else:
@@ -233,7 +231,6 @@ def build_model(args, dm, vocab):
             cfg_coef=args.cfg_coef,
             scheduled_noise=args.scheduled_noise,
             rep_loss_weight=args.rep_loss_weight,
-            time_condition=args.time_condition,
             **hparams
         )
     

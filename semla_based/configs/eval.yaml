@@ -37,6 +37,3 @@ use_gate: true
 sparse_rep_condition: null
 rep_loss_weight: 0.1
 
-
-cond_type: cross_attn
-time_condition: False

@@ -40,10 +40,7 @@ def load_model(args, vocab):
     hparams["rep_dropout_prob"] = 0.1 # During evaluation, this hyperparameter is not used, so we set it to 0.1 for simplicity
     hparams["noise_sigma"] = 0.1 # During evaluation, this hyperparameter is not used, so we set it to 0.1 for simplicity
     hparams["dropout"] = 0.1 
-    hparams["sparse_rep_condition"] = hparams.get("sparse_rep_condition", args.sparse_rep_condition)
     
-    hparams["cond_type"] = hparams.get("cond_type", args.cond_type)
-    hparams["time_condition"] = hparams.get("time_condition", args.time_condition)
     
     # # For reproduction
     # if hparams.get("d_rep") is None:
@@ -78,8 +75,6 @@ def load_model(args, vocab):
             dropout=hparams["dropout"],
             original=hparams["original"], 
             use_gate=hparams["use_gate"],
-            sparse_rep_condition=hparams["sparse_rep_condition"],
-            cond_type=hparams["cond_type"],
         )
         egnn_gen = SemlaGenerator(
             hparams["d_model"],

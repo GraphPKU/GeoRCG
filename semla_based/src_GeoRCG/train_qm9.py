@@ -58,7 +58,6 @@ def build_model(args, dm, vocab):
             dropout=args.dropout,
             original=args.original,
             use_gate=args.use_gate,
-            sparse_rep_condition=args.sparse_rep_condition,
         )
         egnn_gen = SemlaGenerator(
             args.d_model,

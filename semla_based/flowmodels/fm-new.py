@@ -393,7 +393,6 @@ class MolecularCFM(L.LightningModule):
             cfg_coef=1.0,
             scheduled_noise=False,
             rep_loss_weight=0.1,
-            time_condition=False,
             **kwargs
     ):
         super().__init__()
@@ -444,7 +443,6 @@ class MolecularCFM(L.LightningModule):
         self.scheduled_noise = scheduled_noise
         self.fake_rep = torch.nn.Parameter(torch.zeros(1, d_rep), requires_grad=True)
         self.rep_loss_weight = rep_loss_weight
-        self.time_condition = time_condition
         self.dataset = kwargs.get("dataset", None)
         builder = MolBuilder(vocab)
 
@@ -491,7 +489,6 @@ class MolecularCFM(L.LightningModule):
             "rep_dropout_prob": rep_dropout_prob,
             "scheduled_noise": scheduled_noise,
             "rep_loss_weight": rep_loss_weight,
-            "time_condition": time_condition,
             **gen.hparams,
             **integrator.hparams,
             **kwargs
@@ -624,11 +621,10 @@ class MolecularCFM(L.LightningModule):
                 cond_bonds=cond_batch["bonds"],
                 atom_mask=mask,
                 rep=rep,
-                times=t if self.time_condition else None
             )
 
         else:
-            out = model(coords, features, edge_feats=bonds, atom_mask=mask, rep=rep, times=t if self.time_condition else None)
+            out = model(coords, features, edge_feats=bonds, atom_mask=mask, rep=rep)
 
         return out
 

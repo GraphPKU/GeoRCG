@@ -61,5 +61,3 @@ experiments_gen:
   scheduled_noise: false
   sparse_rep_condition: null
   rep_loss_weight: 0.5
-  time_condition: false
-  cond_type: cross_attn
