@@ -388,12 +388,10 @@ class MolecularCFM_property(L.LightningModule):
         encoder=None,
         rdm=None,
         
-        rep_condition: bool = False,
         noise_sigma=0.3,
         rep_dropout_prob=0.1,
         d_rep=512,
         cfg_coef=1.0,
-        scheduled_noise=False,
         rep_loss_weight=0.1,
         
         
@@ -440,14 +438,12 @@ class MolecularCFM_property(L.LightningModule):
         self.total_steps = total_steps
         self.type_mask_index = type_mask_index
         self.bond_mask_index = bond_mask_index
-        self.rep_condition = rep_condition
         self.encoder = encoder
         self.rdm = rdm
         self.noise_sigma = noise_sigma
         self.d_rep = d_rep
         self.cfg_coef = cfg_coef
         self.rep_dropout_prob = rep_dropout_prob
-        self.scheduled_noise = scheduled_noise
         self.fake_rep = torch.nn.Parameter(torch.zeros(1, d_rep), requires_grad=True)
         self.rep_loss_weight = rep_loss_weight
         self.dataset = kwargs.get("dataset", None)
@@ -490,12 +486,10 @@ class MolecularCFM_property(L.LightningModule):
             "use_ema": use_ema,
             "compile_model": compile_model,
             "warm_up_steps": warm_up_steps,
-            "rep_condition": rep_condition,
             "noise_sigma": noise_sigma,
             # "d_rep": d_rep, # This is contained in other hparams
             "cfg_coef": cfg_coef,
             "rep_dropout_prob": rep_dropout_prob,
-            "scheduled_noise": scheduled_noise,
             "rep_loss_weight": rep_loss_weight,
             **gen.hparams,
             **integrator.hparams,
@@ -561,10 +555,6 @@ class MolecularCFM_property(L.LightningModule):
         properties = properties.float()
         properties = (properties - self.property_norms["mean"]) / self.property_norms["mad"]
         
-        
-        assert self.rep_condition
-        if self.rep_condition:
-            assert rep is not None
             
         batch_size = batch["coords"].size(0)
         if training:
@@ -623,9 +613,6 @@ class MolecularCFM_property(L.LightningModule):
         bonds = batch["bonds"]
         mask = batch["mask"]
 
-        # use representation condition
-        if self.rep_condition:
-            assert rep is not None
 
         # Prepare invariant atom features
         times = t.view(-1, 1, 1).expand(-1, coords.size(1), -1)
@@ -668,19 +655,12 @@ class MolecularCFM_property(L.LightningModule):
         atom_types = data["atomics"]
         mask = data["mask"]
 
-        if not self.scheduled_noise:
-            noise_sigma = self.noise_sigma
-        else:
-            # Linearly decrease noise from 0.5 to self.noise_sigma over the first 50% of training
-            if self.global_step < self.total_steps * 0.5:
-                noise_sigma = 0.5 - (0.5 - self.noise_sigma) * (self.global_step / (self.total_steps * 0.5))
-            else:
-                noise_sigma = self.noise_sigma
+        noise_sigma = self.noise_sigma
         
-        rep = get_global_representation(mask, self.encoder, coords, atom_types, training_encoder=False, noise_sigma=noise_sigma, dataset=self.dataset)
+        rep = get_global_representation(mask, self.encoder, coords, atom_types, noise_sigma=noise_sigma, dataset=self.dataset)
         assert (rep.requires_grad and False) or (not rep.requires_grad and not False)
         
-        clean_rep = get_global_representation(mask, self.encoder, coords, atom_types, training_encoder=False, noise_sigma=0., dataset=self.dataset)
+        clean_rep = get_global_representation(mask, self.encoder, coords, atom_types, noise_sigma=0., dataset=self.dataset)
         
         
         # If training with self conditioning, half the time generate a conditional batch by setting cond to zeros
@@ -737,7 +717,7 @@ class MolecularCFM_property(L.LightningModule):
         
         predicted_mask = mask
 
-        predicted_rep = get_global_representation(predicted_mask, self.encoder, predicted_coords, predicted_atom_types, training_encoder=False, noise_sigma=0., dataset=self.dataset)
+        predicted_rep = get_global_representation(predicted_mask, self.encoder, predicted_coords, predicted_atom_types, noise_sigma=0., dataset=self.dataset)
         
         rep_loss = F.mse_loss(predicted_rep, clean_rep)
         
@@ -849,7 +829,7 @@ class MolecularCFM_property(L.LightningModule):
         atom_types = data["atomics"]
         mask = data["mask"]
 
-        rep = get_global_representation(mask, self.encoder, coords, atom_types, training_encoder=False,
+        rep = get_global_representation(mask, self.encoder, coords, atom_types,
                                         noise_sigma=self.noise_sigma, dataset=self.dataset)
         assert (rep.requires_grad and False) or (not rep.requires_grad and not False)
 

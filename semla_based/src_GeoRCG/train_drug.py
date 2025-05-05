@@ -187,14 +187,12 @@ def build_model(args, dm, vocab):
             type_mask_index=type_mask_index,
             bond_mask_index=bond_mask_index,
             
-            rep_condition=True,
             encoder=encoder,
             rdm=rep_sampler,
-            rep_dropout_prob=args.rep_dropout_prob,
-            noise_sigma=args.noise_sigma,
             d_rep=args.d_rep,
             cfg_coef=args.cfg_coef,
-            scheduled_noise=args.scheduled_noise,
+            noise_sigma=args.noise_sigma,
+            rep_dropout_prob=args.rep_dropout_prob,
             rep_loss_weight=args.rep_loss_weight,
             **hparams,
             )
@@ -222,14 +220,12 @@ def build_model(args, dm, vocab):
             type_mask_index=type_mask_index,
             bond_mask_index=bond_mask_index,
             
-            rep_condition=True,
             encoder=encoder,
             rdm=rep_sampler,
-            rep_dropout_prob=args.rep_dropout_prob,
-            noise_sigma=args.noise_sigma,
             d_rep=args.d_rep,
             cfg_coef=args.cfg_coef,
-            scheduled_noise=args.scheduled_noise,
+            noise_sigma=args.noise_sigma,
+            rep_dropout_prob=args.rep_dropout_prob,
             rep_loss_weight=args.rep_loss_weight,
             **hparams
         )

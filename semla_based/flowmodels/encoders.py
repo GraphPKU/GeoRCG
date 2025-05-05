@@ -223,7 +223,7 @@ def flatten_x_h(x, h, node_mask):
     return batch, x_flatten, h_integer_flatten
 
 
-def get_global_representation(node_mask, rep_encoder, x, h, training_encoder=False, noise_sigma=0., device=None, dataset=None):
+def get_global_representation(node_mask, rep_encoder, x, h, noise_sigma=0., device=None, dataset=None):
     assert dataset is not None
     if dataset == "qm9" or dataset == "qm9_second_half":
         x = x * util.QM9_COORDS_STD_DEV
@@ -232,10 +232,7 @@ def get_global_representation(node_mask, rep_encoder, x, h, training_encoder=Fal
     else:
         raise ValueError(f"Dataset {dataset} is not supported.")    
     # assert atom_decoder is not None
-    if not training_encoder:
-        rep_encoder.eval()
-    else:
-        assert rep_encoder.training # We set training in loop codes
+    rep_encoder.eval()
         
     if device is not None:
         rep_encoder.to(device)

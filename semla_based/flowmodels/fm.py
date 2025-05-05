@@ -387,14 +387,14 @@ class MolecularCFM(L.LightningModule):
         encoder=None,
         rdm=None,
         
-        rep_condition: bool = False,
         noise_sigma=0.3,
         rep_dropout_prob=0.1,
         d_rep=512,
         cfg_coef=1.0,
-        scheduled_noise=False,
         rep_loss_weight=0.1,
-        **kwargs
+        original=False,
+        dataset="geom-drugs",
+        kwargs: Optional[Dict] = {}
     ):
         super().__init__()
 
@@ -434,18 +434,16 @@ class MolecularCFM(L.LightningModule):
         self.total_steps = total_steps
         self.type_mask_index = type_mask_index
         self.bond_mask_index = bond_mask_index
-        self.rep_condition = rep_condition
         self.encoder = encoder
         self.rdm = rdm
         self.noise_sigma = noise_sigma
         self.d_rep = d_rep
         self.cfg_coef = cfg_coef
         self.rep_dropout_prob = rep_dropout_prob
-        self.scheduled_noise = scheduled_noise
         self.fake_rep = torch.nn.Parameter(torch.zeros(1, d_rep), requires_grad=True)
         self.rep_loss_weight = rep_loss_weight
-        self.dataset = kwargs.get("dataset", None)
-        self.original = kwargs.get("original", False)
+        self.dataset = dataset
+        self.original = original
         builder = MolBuilder(vocab)
 
         if use_ema:
@@ -484,12 +482,11 @@ class MolecularCFM(L.LightningModule):
             "use_ema": use_ema,
             "compile_model": compile_model,
             "warm_up_steps": warm_up_steps,
-            "rep_condition": rep_condition,
-            "noise_sigma": noise_sigma,
+            
             # "d_rep": d_rep, # This is contained in other hparams
             "cfg_coef": cfg_coef,
+            "noise_sigma": noise_sigma,
             "rep_dropout_prob": rep_dropout_prob,
-            "scheduled_noise": scheduled_noise,
             "rep_loss_weight": rep_loss_weight,
             **gen.hparams,
             **integrator.hparams,
@@ -541,48 +538,47 @@ class MolecularCFM(L.LightningModule):
     def forward(self, batch, t, training=False, cond_batch=None, rep=None):
         # This serves for random represnetations.
         # use representation condition
-        assert self.rep_condition
-        if self.rep_condition:
-            assert rep is not None
-            
         batch_size = batch["coords"].size(0)
-        if training:
-            rep_mask = torch.rand(batch_size, 1) > self.rep_dropout_prob
-            rep_mask = rep_mask.to(rep.device)
+        if rep is not None:
+            if training:
+                rep_mask = torch.rand(batch_size, 1) > self.rep_dropout_prob
+                rep_mask = rep_mask.to(rep.device)
 
-            rep = rep * rep_mask
-            rep = rep + self.fake_rep.repeat(batch_size, 1) * ~rep_mask
-            return self._forward(batch, t, training=training, cond_batch=cond_batch, rep=rep)
-        else:
-            if self.original or self.cfg_coef == 0:
+                rep = rep * rep_mask
+                rep = rep + self.fake_rep.repeat(batch_size, 1) * ~rep_mask
                 return self._forward(batch, t, training=training, cond_batch=cond_batch, rep=rep)
-            # use classifier-free condition
-            augumented_fake_rep = self.fake_rep.repeat(batch_size, 1)
-            augumented_rep = torch.cat([rep, augumented_fake_rep], dim=0)
-            # Now, augument the batch and cond_batch and t
-            augumented_batch = {}
-            for key in batch.keys():
-                 augumented_batch[key] = torch.cat([batch[key], batch[key]], dim=0) if batch[key] is not None else None
-            augumented_t = torch.cat([t, t], dim=0)
-            
-            
-            if cond_batch is not None:
-                augumented_cond_batch = {}
-                for key in cond_batch.keys():
-                    augumented_cond_batch[key] = torch.cat([cond_batch[key], cond_batch[key]], dim=0)
-                output = self._forward(augumented_batch, augumented_t, training=training, cond_batch=augumented_cond_batch, rep=augumented_rep)
             else:
-                output = self._forward(augumented_batch, augumented_t, training=training, rep=augumented_rep)
-    
-            first_half = [value[:batch_size] for value in output]
-            second_half = [value[batch_size:] for value in output]
-            
-            integrated = [
-                first_value + self.cfg_coef * (first_value - second_value)
-                for first_value, second_value in zip(first_half, second_half)
-            ]
+                if self.original or self.cfg_coef == 0:
+                    return self._forward(batch, t, training=training, cond_batch=cond_batch, rep=rep)
+                # use classifier-free condition
+                augumented_fake_rep = self.fake_rep.repeat(batch_size, 1)
+                augumented_rep = torch.cat([rep, augumented_fake_rep], dim=0)
+                # Now, augument the batch and cond_batch and t
+                augumented_batch = {}
+                for key in batch.keys():
+                    augumented_batch[key] = torch.cat([batch[key], batch[key]], dim=0) if batch[key] is not None else None
+                augumented_t = torch.cat([t, t], dim=0)
+                
+                
+                if cond_batch is not None:
+                    augumented_cond_batch = {}
+                    for key in cond_batch.keys():
+                        augumented_cond_batch[key] = torch.cat([cond_batch[key], cond_batch[key]], dim=0)
+                    output = self._forward(augumented_batch, augumented_t, training=training, cond_batch=augumented_cond_batch, rep=augumented_rep)
+                else:
+                    output = self._forward(augumented_batch, augumented_t, training=training, rep=augumented_rep)
+        
+                first_half = [value[:batch_size] for value in output]
+                second_half = [value[batch_size:] for value in output]
+                
+                integrated = [
+                    first_value + self.cfg_coef * (first_value - second_value)
+                    for first_value, second_value in zip(first_half, second_half)
+                ]
 
-            return integrated
+                return integrated
+        else:
+            return self._forward(batch, t, training=training, cond_batch=cond_batch, rep=rep)
 
     def _forward(self, batch, t, training=False, cond_batch=None, rep=None):
         """Predict molecular coordinates and atom types
@@ -603,10 +599,6 @@ class MolecularCFM(L.LightningModule):
         atom_types = batch["atomics"]
         bonds = batch["bonds"]
         mask = batch["mask"]
-
-        # use representation condition
-        if self.rep_condition:
-            assert rep is not None
 
         # Prepare invariant atom features
         times = t.view(-1, 1, 1).expand(-1, coords.size(1), -1)
@@ -631,7 +623,7 @@ class MolecularCFM(L.LightningModule):
             )
 
         else:
-            out = model(coords, features, edge_feats=bonds, atom_mask=mask, rep=rep, times=t )
+            out = model(coords, features, edge_feats=bonds, atom_mask=mask, rep=rep, times=t)
 
 
         return out
@@ -648,20 +640,14 @@ class MolecularCFM(L.LightningModule):
         atom_types = data["atomics"]
         mask = data["mask"]
 
-        if not self.scheduled_noise:
-            noise_sigma = self.noise_sigma
+
+        noise_sigma = self.noise_sigma
+        
+        if not self.original:
+            rep = get_global_representation(mask, self.encoder, coords, atom_types, noise_sigma=noise_sigma, dataset=self.dataset)
+            clean_rep = get_global_representation(mask, self.encoder, coords, atom_types, noise_sigma=0., dataset=self.dataset)
         else:
-            # Linearly decrease noise from 0.5 to self.noise_sigma over the first 50% of training
-            if self.global_step < self.total_steps * 0.5:
-                noise_sigma = 0.5 - (0.5 - self.noise_sigma) * (self.global_step / (self.total_steps * 0.5))
-            else:
-                noise_sigma = self.noise_sigma
-        
-        rep = get_global_representation(mask, self.encoder, coords, atom_types, training_encoder=False, noise_sigma=noise_sigma, dataset=self.dataset)
-        assert (rep.requires_grad and False) or (not rep.requires_grad and not False)
-        
-        clean_rep = get_global_representation(mask, self.encoder, coords, atom_types, training_encoder=False, noise_sigma=0., dataset=self.dataset)
-        
+            rep = clean_rep = None
         
         # If training with self conditioning, half the time generate a conditional batch by setting cond to zeros
         if self.self_condition:
@@ -685,7 +671,7 @@ class MolecularCFM(L.LightningModule):
                         "atomics": F.softmax(cond_types, dim=-1),
                         "bonds": F.softmax(cond_bonds, dim=-1)
                     }
-
+        
         coords, types, bonds, charges = self(
             interpolated,
             times,
@@ -703,29 +689,21 @@ class MolecularCFM(L.LightningModule):
         losses = self._loss(data, interpolated, predicted)
         loss = sum(list(losses.values()))
         
+        if not self.original:
+            # Add representation alignment loss
+            predicted_coords = predicted["coords"]
+            # NOTE: Think twice: one hot operation is not differentiable, so the gradient from rep loss is not effective, since it optimizes 3D conformations but with wrong atom types.
+            predicted_atom_types = batch[1]["atomics"]
+            predicted_mask = mask
+            predicted_rep = get_global_representation(predicted_mask, self.encoder, predicted_coords, predicted_atom_types, noise_sigma=0., dataset=self.dataset)
+            
+            rep_loss = F.mse_loss(predicted_rep, clean_rep)
         
-        # Add representation alignment loss
-        predicted_coords = predicted["coords"]
-        # NOTE: Think twice: one hot operation is not differentiable, so the gradient from rep loss is not effective, since it optimizes 3D conformations but with wrong atom types.
-        # NOTE: So, we should use correct atom types here instead!
-        # predicted_atom_types = predicted["atomics"]
-        # predicted_atom_types = predicted_atom_types[:, :, 2:]
-        # predicted_atom_types = F.softmax(predicted_atom_types, dim=-1)
-        # predicted_atom_types = F.one_hot(predicted_atom_types.argmax(dim=-1), num_classes=predicted_atom_types.size(-1))
-        # predicted_atom_types = torch.cat([torch.zeros_like(predicted_atom_types[:, :, :2]), predicted_atom_types], dim=-1)
-        predicted_atom_types = batch[1]["atomics"]
-        
-        predicted_mask = mask
-
-        predicted_rep = get_global_representation(predicted_mask, self.encoder, predicted_coords, predicted_atom_types, training_encoder=False, noise_sigma=0., dataset=self.dataset)
-        
-        rep_loss = F.mse_loss(predicted_rep, clean_rep)
-        
-        loss += rep_loss * self.rep_loss_weight
+            loss += rep_loss * self.rep_loss_weight
+            self.log(f"train-rep_loss", rep_loss, on_step=True, logger=True)
 
         for name, loss_val in losses.items():
             self.log(f"train-{name}", loss_val, on_step=True, logger=True)
-        self.log(f"train-rep_loss", rep_loss, on_step=True, logger=True)
 
         self.log("train-loss", loss, prog_bar=True, on_step=True, logger=True)
 
@@ -823,7 +801,7 @@ class MolecularCFM(L.LightningModule):
         atom_types = data["atomics"]
         mask = data["mask"]
 
-        rep = get_global_representation(mask, self.encoder, coords, atom_types, training_encoder=False,
+        rep = get_global_representation(mask, self.encoder, coords, atom_types,
                                         noise_sigma=self.noise_sigma, dataset=self.dataset)
         assert (rep.requires_grad and False) or (not rep.requires_grad and not False)
 
@@ -1057,32 +1035,34 @@ class MolecularCFM(L.LightningModule):
             nodesxsample = node_mask.sum(-1) if len(node_mask.shape) == 2 else node_mask.sum(-1).sum(-1)
             nodesxsample = nodesxsample.to(torch.int64)
             
-            
-            if len(self.pre_generated_reps) > 0:
-                s = time.time()
-                sampled_rep = []
-                for size in nodesxsample:
-                    mask = size == self.pre_generated_reps_sizes
-                    assert mask.sum() > 0, "No rep found for this size. Please check your pre-generated reps procedure."
-                    # randomly select one rep
-                    rand_idx = torch.randint(0, mask.sum(), (1,)).item()
-                    self.pre_generated_reps_sizes[torch.where(mask)[0][rand_idx]] = -1
-                    pre_generated_reps = self.pre_generated_reps[mask][rand_idx]
-                    sampled_rep.append(pre_generated_reps)
-                
-                sampled_rep = torch.stack(sampled_rep, dim=0)
-                print(f"Fetching {batch_size} reps time: {time.time() - s}")
+            if not self.original:
+                if len(self.pre_generated_reps) > 0:
+                    s = time.time()
+                    sampled_rep = []
+                    for size in nodesxsample:
+                        mask = size == self.pre_generated_reps_sizes
+                        assert mask.sum() > 0, "No rep found for this size. Please check your pre-generated reps procedure."
+                        # randomly select one rep
+                        rand_idx = torch.randint(0, mask.sum(), (1,)).item()
+                        self.pre_generated_reps_sizes[torch.where(mask)[0][rand_idx]] = -1
+                        pre_generated_reps = self.pre_generated_reps[mask][rand_idx]
+                        sampled_rep.append(pre_generated_reps)
+                    
+                    sampled_rep = torch.stack(sampled_rep, dim=0)
+                    print(f"Fetching {batch_size} reps time: {time.time() - s}")
+                else:
+                    # To sample rep first. We only use context in rep samplers, and pcdm sampler is always unconidtional.
+                    s = time.time()
+                    self.rdm.eval()
+                    sampled_rep = self.rdm.sample(
+                        nodesxsample=nodesxsample,
+                        device=device,
+                        additional_cond=None,
+                        running_batch_size=batch_size
+                    )
+                    print(f"Rep sampling time for {batch_size} samples: {time.time() - s}")
             else:
-                # To sample rep first. We only use context in rep samplers, and pcdm sampler is always unconidtional.
-                s = time.time()
-                self.rdm.eval()
-                sampled_rep = self.rdm.sample(
-                    nodesxsample=nodesxsample,
-                    device=device,
-                    additional_cond=None,
-                    running_batch_size=batch_size
-                )
-                print(f"Rep sampling time for {batch_size} samples: {time.time() - s}")
+                sampled_rep = None
             s = time.time()
             for step_size in step_sizes:
                 cond = cond_batch if self.self_condition else None

@@ -333,8 +333,7 @@ class EquivariantMLP(torch.nn.Module):
 
 
 class NodeFeedForward(torch.nn.Module):
-    def __init__(self, d_model, n_coord_sets, d_ff=None, proj_sets=None, coord_norm="length", d_rep=None, dropout=0.0,
-                 attn_block_num=None, original=True, use_gate=True):
+    def __init__(self, d_model, n_coord_sets, d_ff=None, proj_sets=None, coord_norm="length"):
         super().__init__()
 
         self.node_norm = torch.nn.LayerNorm(d_model)
@@ -344,22 +343,7 @@ class NodeFeedForward(torch.nn.Module):
         self.equivariant_mlp = EquivariantMLP(d_model, n_coord_sets, proj_sets=proj_sets)
 
 
-        if d_rep is not None and not original :
-            self.attn = nn.ModuleList([BasicTransformerBlock(
-                dim=d_model,
-                n_heads=4,
-                d_head=d_model // 4,
-                dropout=dropout,
-                context_dim=d_rep,
-                self_attention=False,
-                use_gate=use_gate
-            )
-                for _ in range(attn_block_num)]) 
-
-
-        self.original = original
-
-    def forward(self, coord_sets, node_feats, node_mask, rep=None):
+    def forward(self, coord_sets, node_feats, node_mask):
         """Pass data through the layer
 
         Args:
@@ -370,11 +354,6 @@ class NodeFeedForward(torch.nn.Module):
         Returns:
             torch.Tensor, torch.Tensor: Updates to coords and node features
         """
-        if not self.original:
-            assert rep is not None, "rep is None in NodeFeedForward but original=False"
-        if rep is not None and not self.original:
-            for layer in self.attn:
-                node_feats = layer(node_feats, context=rep.unsqueeze(1)) * node_mask[:, 0, :].unsqueeze(2)
 
         node_feats = self.node_norm(node_feats)
         coord_sets = self.coord_norm(coord_sets, node_mask)
@@ -507,7 +486,7 @@ class EquiMessagePassingLayer(torch.nn.Module):
         self.node_attn = NodeAttention(d_model, n_attn_heads, d_attn=d_attn)
 
         # TODO: initialize cross attention
-        if self.d_rep is not None and not original:
+        if not original:
             self.attn = nn.ModuleList([BasicTransformerBlock(
                 dim=d_model,
                 n_heads=n_cross_attn_heads,
@@ -544,8 +523,7 @@ class EquiMessagePassingLayer(torch.nn.Module):
             node coords, new node features and new edge features.
         """
         # TODO: complete cross attention
-        if rep is not None and not self.original:
-
+        if rep is not None:
             for layer in self.attn:
                 node_feats = layer(node_feats, context=rep.unsqueeze(1)) * node_mask[:, 0, :].unsqueeze(2)
         if edge_feats is not None and self.d_edge_in is None:
@@ -622,8 +600,8 @@ class EquiInvDynamics(torch.nn.Module):
             "eps": eps,
 
             "d_rep": d_rep,
-            "dropout": dropout,
             "attn_block_num": attn_block_num,
+            "dropout": dropout,
             "original": original,
             "use_gate": use_gate,
         }
@@ -685,9 +663,7 @@ class EquiInvDynamics(torch.nn.Module):
 
         self.layers = torch.nn.ModuleList(layers)
 
-        self.final_ff_block = NodeFeedForward(d_model, n_coord_sets, coord_norm=coord_norm,
-                                              d_rep=d_rep, dropout=dropout, attn_block_num=attn_block_num,
-                                              original=original, use_gate=use_gate)
+        self.final_ff_block = NodeFeedForward(d_model, n_coord_sets, coord_norm=coord_norm)
         self.coord_norm = CoordNorm(n_coord_sets, norm=coord_norm)
         self.feat_norm = torch.nn.LayerNorm(d_model)
 
@@ -700,28 +676,18 @@ class EquiInvDynamics(torch.nn.Module):
 
         if self.bond_refine:
             self.refine_layer = BondRefine(d_model, d_message, d_edge)
-
-        if d_rep is not None:
-            # complete representation conditioning in EquiMessagePassingLayer via cross attention
-            self.d_rep = d_rep
-            self.time_embedder = TimestepEmbedder(d_rep)
         else:
             assert 0
 
         self.original = original
         if original:
-            print("Warning: Training and Evaluating Original Semla!!!!!")
-            print("Warning: Training and Evaluating Original Semla!!!!!")
-            print("Warning: Training and Evaluating Original Semla!!!!!")
-            print("Warning: Training and Evaluating Original Semla!!!!!")
-            print("Warning: Training and Evaluating Original Semla!!!!!")
-            print("Warning: Training and Evaluating Original Semla!!!!!")
+            print("\nWarning: Training and Evaluating Original Semla!!!!!\n")
 
     @property
     def hparams(self):
         return self._hparams
 
-    def forward(self, coords, inv_feats, adj_matrix, atom_mask=None, edge_feats=None, cond_coords=None, rep=None, times=None):
+    def forward(self, coords, inv_feats, adj_matrix, atom_mask=None, edge_feats=None, cond_coords=None, rep=None):
         """Generate molecular coordinates and atom features
 
         Args:
@@ -739,10 +705,6 @@ class EquiInvDynamics(torch.nn.Module):
                 Atom feats [batch_size, n_atoms, d_model]
                 Edge feats [batch_size, n_atoms, n_atoms, d_edge]
         """
-        # finish cross attention in EquiMessagePassingLayer
-        if rep is not None:
-            if times is not None:
-                rep = rep + self.time_embedder(times)
 
         if edge_feats is not None and self.d_edge is None:
             raise ValueError("edge_feats was provided but the model was initialised with d_edge as None.")
@@ -774,7 +736,7 @@ class EquiInvDynamics(torch.nn.Module):
                 coords, inv_feats, edge_feats = out
 
         # Apply a final feedforward block and project coord sets to single coord set
-        coords, inv_feats = self.final_ff_block(coords, inv_feats, atom_mask, rep=rep)
+        coords, inv_feats = self.final_ff_block(coords, inv_feats, atom_mask)
         out_coords = self.coord_norm(coords, atom_mask)
         out_coords = self.coord_head(out_coords.transpose(1, -1))
         out_coords = out_coords.transpose(1, -1).squeeze(1)
@@ -922,8 +884,8 @@ class SemlaGenerator(MolecularGenerator):
             cond_atomics=None,
             cond_bonds=None,
             atom_mask=None,
+            
             rep=None,
-            times=None,
             property=None
     ):
         """Predict molecular coordinates and atom types
@@ -991,7 +953,6 @@ class SemlaGenerator(MolecularGenerator):
             edge_feats=edge_feats,
             cond_coords=cond_coords,
             rep=rep,
-            times=times
         )
 
         

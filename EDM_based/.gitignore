@@ -277,3 +277,6 @@ nohup.out
 other_exps/
 openai-chatgpt-latest.vsix
 ICML2025_anonymous/
+
+unimol_drug_6layers/
+unimol_drug_6layers_continue/

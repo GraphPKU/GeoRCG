@@ -56,3 +56,5 @@ unimol_args:
   batch_size: 64
 
   mode: infer
+
+  encoder_layers: 6

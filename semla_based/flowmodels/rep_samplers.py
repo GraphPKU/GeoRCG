@@ -234,7 +234,7 @@ class GtSampler(BaseRepSampler):
         z = data.atomics.to(device)
         node_mask = data.mask.to(device)
 
-        rep = get_global_representation(node_mask, self.encoder, pos, z, training_encoder=False, device=device, dataset=self.dataset)
+        rep = get_global_representation(node_mask, self.encoder, pos, z, device=device, dataset=self.dataset)
 
         return rep
     
