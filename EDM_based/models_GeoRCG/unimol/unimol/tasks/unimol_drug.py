@@ -358,7 +358,7 @@ class UniMolDrugMoreTask(UnicoreTask):
             print("load pretrain model weight from...", args.finetune_mol_model)
             state = checkpoint_utils.load_checkpoint_to_cpu(
                 args.finetune_mol_model,
-            )
+            )  
             load_profile = model.load_state_dict({key.replace('unimol.', ''): value for key, value in state["model"].items()}, strict=False)
             print(load_profile)
         

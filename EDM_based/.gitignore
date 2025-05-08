@@ -195,21 +195,20 @@ poetry.lock
 .idea/
 *.swp
 
+
+
+
 outputs/
 
 /data/
 generated_samples/
 wandb/
 LICENSE
-checkpoints/rdm_ckpts/
-checkpoints/gen_ckpts/
-checkpoints/classifiers_ckpts/
 vis_reps/
 run_evals.py
 eval_src/eval_results/
 eval_src/visualize_results/
 multirun/
-/temp/
 /unimol_pretrain_save/
 /paper_draw/
 prop_dist_samples*
@@ -218,65 +217,23 @@ prop_dist_samples*
 /models_GeoRCG/unimol/ckpts
 /models_GeoRCG/unimol/Uni-Core/
 /models_GeoRCG/unimol/example_data/
+/models_GeoRCG/unimol/datas
 /eval_src/vis_notebooks/data/
 dsgdb9nsd.xyz*
 sweep_grid.pdf
 /graphs/
-mad_pred_mean_label_pairs_epoch_0.txt
-mad_pred_mean_label_pairs_with_error_epoch_0.txt
-checkpoints/encoder_ckpts/unimol_drug.pt
-eval_src/sample_conformer_qm9_LDM-3DG.pt
 node_dist_cal.py
-eval_src/eval_2dmetrics.py
-eval_src/collect_prop_dist_samples.py
-eval_src/eval_analyze_visualize_rep_sweep.py
-eval_src/eval_LDM_3DG_edm.py
-eval_src/eval_LDM_3DG.py
 hydra_logs/
-# rep_sweep/
-# visualize_results/
-# temp/
-# models/unimol/example_data
-# unimol_pretrain_save/
-# paper_draw/
-# eval_src/sample_conformer_qm9_LDM-3DG.pt
-# unicore-0.0.1*
-# ppt.ipynb
-ICLR_submit/
-mad_pred_mean_label_pairs*
-models_GeoRCG/unimol/datas
 lightning_logs/
-SBDD/
-semlaflow/original_checkpoints/
-unimol_pretrain_more_save_continue/
-unimol_pretrain_more_save/
-checkpoints/encoder_ckpts/
-semlaflow/original_checkpoints/drug_original.ckpt
-
-semlaflow/original_checkpoints/drug_original.ckpt
-unimol_pretrain_more_save_continue_pred/
-unimol_pretrain_more_global_save/
 eval_src/tmp/
-frad_lipschitz.txt
-unimol_global_lipschitz.txt
-unimol_lipschitz.txt
-unimol_more_first4_lipschitz.txt
-unimol_more_lipschitz.txt
-calculate_Lipschitz_count.sh
-eval_src/vis_notebooks/aa.sh
 eval_src/vis_notebooks/check_effective_num_layers.py
 eval_src/vis_notebooks/vis_reps_sampler_drug.ipynb
 
-
-
-unimol_pretrain_more_global_v2_save/
 midi_geom_data/
 
-*.sh
 nohup.out
 other_exps/
 openai-chatgpt-latest.vsix
 ICML2025_anonymous/
 
-unimol_drug_6layers/
-unimol_drug_6layers_continue/
+unimol_log/
