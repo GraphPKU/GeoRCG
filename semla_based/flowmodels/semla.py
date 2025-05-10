@@ -5,7 +5,7 @@ import numpy as np
 from abc import ABC, abstractmethod
 import time
 import util.functional as smolF
-from models_GeoRCG.attention import BasicTransformerBlock, DiTBlock, TimestepEmbedder
+from models_GeoRCG.attention import BasicTransformerBlock, TimestepEmbedder, AdaZeroFusion
 
 
 def adj_to_attn_mask(adj_matrix, pos_inf=False):
@@ -439,6 +439,7 @@ class EquiMessagePassingLayer(torch.nn.Module):
             attn_block_num=1,
             original=False,
             use_gate=True,
+            cond_type="attn"
     ):
         super().__init__()
 
@@ -496,7 +497,17 @@ class EquiMessagePassingLayer(torch.nn.Module):
                 self_attention=False,
                 use_gate=use_gate
             )
-                for _ in range(attn_block_num)])
+                for _ in range(attn_block_num)] if cond_type == "attn" else
+                [
+                    AdaZeroFusion(
+                        hidden_size=d_model,
+                        mlp_ratio=2.0,
+                        dropout=dropout,
+                        gated_ff=True,
+                        context_dim=d_rep
+                    )
+                ]
+                )
 
     @property
     def hparams(self):
@@ -575,6 +586,7 @@ class EquiInvDynamics(torch.nn.Module):
             dropout=None,
             original=False,
             use_gate=True,
+            cond_type="attn"
     ):
         super().__init__()
 
@@ -604,7 +616,11 @@ class EquiInvDynamics(torch.nn.Module):
             "dropout": dropout,
             "original": original,
             "use_gate": use_gate,
+            
+            "cond_type": cond_type
         }
+        
+        print(f"Using condition type: {cond_type}")
 
         self.d_model = d_model
         self.n_coord_sets = n_coord_sets
@@ -624,6 +640,7 @@ class EquiInvDynamics(torch.nn.Module):
             attn_block_num=attn_block_num,
             original=original,
             use_gate=use_gate,
+            cond_type=cond_type
         )
         layers = self._get_clones(core_layer, n_layers - extra_layers)
 
@@ -643,6 +660,7 @@ class EquiInvDynamics(torch.nn.Module):
                 attn_block_num=attn_block_num,
                 original=original,
                 use_gate=use_gate,
+                cond_type=cond_type
             )
             out_layer = EquiMessagePassingLayer(
                 d_model,
@@ -658,6 +676,7 @@ class EquiInvDynamics(torch.nn.Module):
                 attn_block_num=attn_block_num,
                 original=original,
                 use_gate=use_gate,
+                cond_type=cond_type
             )
             layers = [in_layer] + layers + [out_layer]
 
@@ -874,6 +893,12 @@ class SemlaGenerator(MolecularGenerator):
                 torch.nn.Linear(property_emb, property_emb)
             )
             
+        self.rep_embedder = nn.Sequential(
+            nn.Linear(d_model, d_model, bias=True),
+            nn.SiLU(),
+            nn.Linear(d_model, d_model, bias=True),
+        )
+        self.timestep_embedder = TimestepEmbedder(d_model, frequency_embedding_size=512) if hparams["cond_type"] != "attn" else None
 
     def forward(
             self,
@@ -886,7 +911,8 @@ class SemlaGenerator(MolecularGenerator):
             atom_mask=None,
             
             rep=None,
-            property=None
+            property=None,
+            t=None
     ):
         """Predict molecular coordinates and atom types
 
@@ -944,6 +970,10 @@ class SemlaGenerator(MolecularGenerator):
             edge_feats = torch.cat((edge_feats, cond_bonds), dim=-1) if cond_bonds is not None else edge_feats
             edge_feats = self.edge_in_proj(edge_feats)
         
+        # To embed rep
+        rep = self.rep_embedder(rep)
+        if self.timestep_embedder is not None:
+            rep = rep + self.timestep_embedder(t.squeeze()[:, 0])
 
         out = self.dynamics(
             coords,

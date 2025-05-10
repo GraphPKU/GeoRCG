@@ -73,3 +73,22 @@ original=true \
 property_condition=true \
 property=alpha \
 version=alpha
+
+
+# For camera ready
+
+## Re-run the EDM on GEOM-DRUG
+
+
+
+
+**AdaFusion**
+
+
+python semlaflow/train_drug.py \
+experiments_gen.cond_type=adafusion \
+experiments_gen.encoder_type=unimol_6layers \
+experiments_gen.encoder_path=../checkpoints/encoder_ckpts/unimol_drug_6layers_960000.pt \
+experiments_gen.version=adafusion_unimol6layers_960000 \
+
+

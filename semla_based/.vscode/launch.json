@@ -10,7 +10,10 @@
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["experiments_gen.trial_run=true"]
+            "args": ["experiments_gen.cond_type=aa", "experiments_gen.trial_run=true", "experiments_gen.encoder_type=unimol_6layers", "experiments_gen.encoder_path=../checkpoints/encoder_ckpts/unimol_drug_6layers_960000.pt"],
+            "env": {
+                "CUDA_VISIBLE_DEVICES": "3",
+            }
         }
     ]
 }

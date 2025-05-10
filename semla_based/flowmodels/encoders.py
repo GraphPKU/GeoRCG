@@ -62,6 +62,29 @@ def initialize_encoder(encoder_type, encoder_ckpt_path):
 
         # Build model and loss
         encoder = task.build_model(unimol_args)
+        
+    elif encoder_type == "unimol_6layers":
+        try:
+            import unicore
+        except ImportError as e:
+            raise ImportError("The 'unicore' package is not installed. Please install it in https://github.com/dptech-corp/Uni-Core for the use of unimol encoder.")
+        from unicore import (
+            tasks,
+            utils,
+        )
+        encoder_args_path = "./configs/unimol_encoder_6layers.yaml"
+        unimol_args = OmegaConf.load(encoder_args_path).unimol_args
+        unimol_args.finetune_mol_model = encoder_ckpt_path
+        sys.path.append("models/unimol")
+        
+        unimol_args = omegaconf.OmegaConf.create(unimol_args)
+        utils.import_user_module(unimol_args)
+        utils.set_jit_fusion_options()
+
+        task = tasks.setup_task(unimol_args)
+
+        # Build model and loss
+        encoder = task.build_model(unimol_args)
     elif encoder_type == "unimol_global":
         try:
             import unicore
@@ -227,7 +250,7 @@ def get_global_representation(node_mask, rep_encoder, x, h, noise_sigma=0., devi
     assert dataset is not None
     if dataset == "qm9" or dataset == "qm9_second_half":
         x = x * util.QM9_COORDS_STD_DEV
-    elif dataset == "geom-drug":
+    elif dataset == "geom-drugs":
         x = x * util.GEOM_COORDS_STD_DEV
     else:
         raise ValueError(f"Dataset {dataset} is not supported.")    

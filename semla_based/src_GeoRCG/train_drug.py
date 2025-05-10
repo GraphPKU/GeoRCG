@@ -19,7 +19,6 @@ from data.interpolate import GeometricInterpolant, GeometricNoiseSampler
 
 
 
-
 # bfloat16 training produced significantly worse flowmodels than full so use default 16-bit instead
 def get_precision(args):
     return "32"
@@ -59,6 +58,7 @@ def build_model(args, dm, vocab):
             dropout=args.dropout,
             original=args.original,
             use_gate=args.use_gate,
+            cond_type=args.cond_type,
         )
         egnn_gen = SemlaGenerator(
             args.d_model,

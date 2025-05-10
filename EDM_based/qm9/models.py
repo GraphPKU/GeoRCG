@@ -28,7 +28,7 @@ def get_model(args, device, dataset_info, dataloader_train):
         act_fn=torch.nn.SiLU(), n_layers=args.n_layers,
         attention=args.attention, tanh=args.tanh, mode=args.gen_model, norm_constant=args.norm_constant,
         inv_sublayers=args.inv_sublayers, sin_embedding=args.sin_embedding,
-        normalization_factor=args.normalization_factor, aggregation_method=args.aggregation_method, cfg=args.cfg, rep_dropout_prob=args.rep_dropout_prob, rep_nf=args.rep_nf, attn_dropout=args.attn_dropout, attn_block_num=args.get("attn_block_num", 1)
+        normalization_factor=args.normalization_factor, aggregation_method=args.aggregation_method, cfg=args.cfg, rep_dropout_prob=args.rep_dropout_prob, rep_nf=args.rep_nf, attn_dropout=args.attn_dropout, attn_block_num=args.attn_block_num, additional_proj=args.additional_proj
          )
 
     if args.probabilistic_model == 'diffusion':

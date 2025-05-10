@@ -1,6 +1,3 @@
-
-
-
 from torch import nn
 import torch
 import math
@@ -118,7 +115,7 @@ class EquivariantUpdate(nn.Module):
 class EquivariantBlock(nn.Module):
     def __init__(self, hidden_nf, edge_feat_nf=2, device='cpu', act_fn=nn.SiLU(), n_layers=2, attention=True,
                  norm_diff=True, tanh=False, coords_range=15, norm_constant=1, sin_embedding=None,
-                 normalization_factor=100, aggregation_method='sum', rep_nf=None, **kwargs):
+                 normalization_factor=100, aggregation_method='sum', rep_nf=None):
         super(EquivariantBlock, self).__init__()
         self.hidden_nf = hidden_nf
         self.device = device
@@ -160,7 +157,7 @@ class EquivariantBlock(nn.Module):
 class EGNN(nn.Module):
     def __init__(self, in_node_nf, in_edge_nf, hidden_nf, device='cpu', act_fn=nn.SiLU(), n_layers=3, attention=False,
                  norm_diff=True, out_node_nf=None, tanh=False, coords_range=15, norm_constant=1, inv_sublayers=2,
-                 sin_embedding=False, normalization_factor=100, aggregation_method='sum', rep_nf=None, cross_attn=True, attn_dropout=None, **kwargs):
+                 sin_embedding=False, normalization_factor=100, aggregation_method='sum', rep_nf=None, attn_dropout=None, attn_block_num=1, additional_proj=False):
         super(EGNN, self).__init__()
         if out_node_nf is None:
             out_node_nf = in_node_nf
@@ -171,7 +168,6 @@ class EGNN(nn.Module):
         self.norm_diff = norm_diff
         self.normalization_factor = normalization_factor
         self.aggregation_method = aggregation_method
-        self.cross_attn = cross_attn
         self.rep_nf = rep_nf
 
         if sin_embedding:
@@ -182,30 +178,16 @@ class EGNN(nn.Module):
             edge_feat_nf = 2
 
         self.embedding = nn.Linear(in_node_nf, self.hidden_nf)
-
-        # if not self.cross_attn:
-        self.rep_proj = nn.Sequential(
-                    nn.Linear(
-                        rep_nf,
-                        self.hidden_nf
-                    ),
-                    act_fn,
-                    nn.Linear(
-                        self.hidden_nf,
-                        self.hidden_nf
-                    ),
-        )
         self.embedding_out = nn.Linear(self.hidden_nf, out_node_nf)
-        if self.cross_attn:
-            from models_GeoRCG.attention import BasicTransformerBlock
-            self.attns = nn.ModuleList()
-            n_heads = 4
-            dropout = attn_dropout
-            self_attention = False
-            
-            self.attns2 = nn.ModuleList()
-            self.extract_projs = nn.ModuleList()
         
+        # For cross attn
+        from models_GeoRCG.attention import BasicTransformerBlock
+        self.attns = nn.ModuleList()
+        n_heads = 4
+        dropout = attn_dropout
+        self_attention = False
+        
+        self.rep_projs = nn.ModuleList() if additional_proj else None
         for i in range(0, n_layers):
             self.add_module("e_block_%d" % i, EquivariantBlock(hidden_nf, edge_feat_nf=edge_feat_nf, device=device,
                                                                act_fn=act_fn, n_layers=inv_sublayers,
@@ -215,29 +197,23 @@ class EGNN(nn.Module):
                                                                normalization_factor=self.normalization_factor,
                                                                aggregation_method=self.aggregation_method,
                                                                rep_nf=rep_nf))
+            
             self.attns.append(
-                BasicTransformerBlock(
-                    dim=hidden_nf,
-                    n_heads=n_heads,
-                    d_head=hidden_nf // n_heads,
-                    dropout=dropout,
-                    context_dim=self.hidden_nf,
-                    self_attention=self_attention,
-                    use_gate=False
+                nn.Sequential(
+                    *[
+                        BasicTransformerBlock(
+                            dim=hidden_nf,
+                            n_heads=n_heads,
+                            d_head=hidden_nf // n_heads,
+                            dropout=dropout,
+                            context_dim=self.rep_nf,
+                            self_attention=self_attention,
+                        )
+                        for _ in range(attn_block_num)
+                    ]
                 )
             )
-            self.attns2.append(
-                BasicTransformerBlock(
-                    dim=hidden_nf,
-                    n_heads=n_heads,
-                    d_head=hidden_nf // n_heads,
-                    dropout=dropout,
-                    context_dim=self.hidden_nf,
-                    self_attention=self_attention,
-                    use_gate=False
-                )
-            )
-            self.extract_projs.append(
+            self.rep_projs.append(
                 nn.Sequential(
                     nn.Linear(self.rep_nf, self.hidden_nf),
                     act_fn,
@@ -260,35 +236,20 @@ class EGNN(nn.Module):
         h = self.embedding(h)
         h = h * node_mask
         # We add rep here.
-        if not self.cross_attn:
-            rep_proj = self.rep_proj(rep)
-            max_node_num = h.shape[0] / rep_proj.shape[0]
-            assert max_node_num == int(max_node_num)
-            max_node_num = int(max_node_num)
-            assert len(rep_proj.shape) == 2
-            rep_proj = rep_proj.unsqueeze(1).repeat(1, max_node_num, 1)
-            rep_proj = rep_proj.flatten(0, 1)
-            
-            h = h + rep_proj
-            h = h * node_mask
-        else:
-            # This calculation is based on the fact that previous codes use dense tensors
-            batch_size = rep.shape[0]
-            max_node_num = h.shape[0] / batch_size
-            assert (max_node_num == int(max_node_num) == node_mask.view(batch_size, int(max_node_num), 1).sum(1).max()) or not self.training
-            max_node_num = int(max_node_num)
-            
+        batch_size = rep.shape[0]
+        max_node_num = h.shape[0] / batch_size
+        assert (max_node_num == int(max_node_num) == node_mask.view(batch_size, int(max_node_num), 1).sum(1).max()) or not self.training
+        max_node_num = int(max_node_num)
+
         
         
         for i in range(0, self.n_layers):
-            if self.cross_attn:
-                rep_proj = self.extract_projs[i](rep)
-                h = self.attns[i](h.view(batch_size, max_node_num, self.hidden_nf), context=rep_proj.unsqueeze(1)).flatten(0, 1)
-                h = h * node_mask
-                h = self.attns2[i](h.view(batch_size, max_node_num, self.hidden_nf), context=rep_proj.unsqueeze(1)).flatten(0, 1)
+            rep_proj = self.rep_projs[i](rep) if self.rep_projs is not None else rep
+
+            for block in self.attns[i]:
+                h = block(h.view(batch_size, max_node_num, self.hidden_nf), context=rep_proj.unsqueeze(1)).flatten(0, 1)
                 h = h * node_mask
             h, x = self._modules["e_block_%d" % i](h, x, edge_index, node_mask=node_mask, edge_mask=edge_mask, edge_attr=distances)
-                
                 
                 
         # Important, the bias of the last linear might be non-zero

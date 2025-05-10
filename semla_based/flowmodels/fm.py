@@ -394,7 +394,7 @@ class MolecularCFM(L.LightningModule):
         rep_loss_weight=0.1,
         original=False,
         dataset="geom-drugs",
-        kwargs: Optional[Dict] = {}
+        **kwargs
     ):
         super().__init__()
 
@@ -620,6 +620,7 @@ class MolecularCFM(L.LightningModule):
                 cond_bonds=cond_batch["bonds"],
                 atom_mask=mask,
                 rep=rep,
+                t=times
             )
 
         else:

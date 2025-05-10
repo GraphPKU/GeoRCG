@@ -361,7 +361,7 @@ def initilize_rep_sampler(rep_sampler_args, dataset_args=None, debug=False, data
         
         
         train_file_name = None
-        if dataset_args.dataset == "qm9":
+        if dataset_args.dataset == "qm9" or dataset_args.dataset == "geom-drugs":
             train_file_name = "train.smol"
         elif dataset_args.dataset == "qm9_second_half":
             train_file_name = "second_half_train.smol"
@@ -369,7 +369,7 @@ def initilize_rep_sampler(rep_sampler_args, dataset_args=None, debug=False, data
             train_file_name = "first_half_train.smol"
         if dataset_args.trial_run:
             train_file_name = "val.smol"
-        assert train_file_name is not None, f"Unknown dataset {dataset_args.dataset}"
+        assert train_file_name is not None, f"Unknown dataset {dataset_args.train_file_name}"
 
         # NOTE: HERE!!!
         train_dataset = GeometricDataset.load(data_path / train_file_name, transform=transform)

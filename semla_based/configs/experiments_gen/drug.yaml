@@ -21,6 +21,7 @@ arch: 'semla'
 d_rep: 512
 encoder_type: 'unimol_global_first4'
 encoder_path: '../checkpoints/encoder_ckpts/unimol_drug_and_originalDataset_global_1860000.pt'
+cond_type: "attn"
 
 
 epochs: 300

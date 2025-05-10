@@ -165,21 +165,28 @@ class CrossAttention(nn.Module):
             nn.Dropout(dropout)
         )
 
-    def forward(self, x, context=None, mask=None, efficient=False):
+    def forward(self, x, context=None, mask=None):
+        if context is not None:
+            efficient = False
+        else:
+            efficient = context.shape[1] == 1
+            
         if efficient:
-            assert context is not None
-            assert context.shape[1] == 1
-        
-        if not efficient:
+            # If cross attention to a single context, we can skip the attention computation
+            v = self.to_v(context)
+            out = v.view(x.size(0), 1, -1)
+            out = self.to_out(out)
+            out = out.repeat(1, x.size(1), 1)
+            return out
+        else:
             mask = None
             h = self.heads
 
             q = self.to_q(x)
             context = default(context, x)
             k = self.to_k(context)
-        v = self.to_v(context)
+            v = self.to_v(context)
 
-        if not efficient:
             q, k, v = map(lambda t: rearrange(t, 'b n (h d) -> (b h) n d', h=h), (q, k, v))
 
             sim = einsum('b i d, b j d -> b i j', q, k) * self.scale
@@ -195,11 +202,8 @@ class CrossAttention(nn.Module):
             out = einsum('b i j, b j d -> b i d', attn, v)
             out = rearrange(out, '(b h) n d -> b n (h d)', h=h)
             out = self.to_out(out)
-        if efficient:
-            out = v.view(x.size(0), 1, -1)
-            out = self.to_out(out)
-            out = out.repeat(1, x.size(1), 1)
-        return out
+
+            return out
 
 
 class BasicTransformerBlock(nn.Module):
@@ -254,79 +258,34 @@ class BasicTransformerBlock(nn.Module):
         return x
 
 
-class SpatialTransformer(nn.Module):
-    """
-    Transformer block for image-like data.
-    First, project the input (aka embedding)
-    and reshape to b, t, d.
-    Then apply standard transformer action.
-    Finally, reshape to image
-    """
-
-    def __init__(self, in_channels, n_heads, d_head,
-                 depth=1, dropout=0., context_dim=None):
-        super().__init__()
-        self.in_channels = in_channels
-        inner_dim = n_heads * d_head
-        self.norm = Normalize(in_channels)
-
-        self.proj_in = nn.Conv2d(in_channels,
-                                 inner_dim,
-                                 kernel_size=1,
-                                 stride=1,
-                                 padding=0)
-
-        self.transformer_blocks = nn.ModuleList(
-            [BasicTransformerBlock(inner_dim, n_heads, d_head, dropout=dropout, context_dim=context_dim)
-             for d in range(depth)]
-        )
-
-        self.proj_out = zero_module(nn.Conv2d(inner_dim,
-                                              in_channels,
-                                              kernel_size=1,
-                                              stride=1,
-                                              padding=0))
-
-    def forward(self, x, context=None):
-        # note: if no context is given, cross-attention defaults to self-attention
-        b, c, h, w = x.shape
-        x_in = x
-        x = self.norm(x)
-        x = self.proj_in(x)
-        x = rearrange(x, 'b c h w -> b (h w) c')
-        for block in self.transformer_blocks:
-            x = block(x, context=context)
-        x = rearrange(x, 'b (h w) c -> b c h w', h=h, w=w)
-        x = self.proj_out(x)
-        return x + x_in
-
 
 def modulate(x, shift, scale):
     return x * (1 + scale) + shift
 
 
-class DiTBlock(nn.Module):
+class AdaZeroFusion(nn.Module):
     """
     A DiT block with adaptive layer norm zero (adaLN-Zero) conditioning.
     """
-    def __init__(self, hidden_size, num_heads, mlp_ratio=4.0, dropout=0., gated_ff=True, context_dim=None, **block_kwargs):
+    def __init__(self, hidden_size, mlp_ratio=4.0, dropout=0., gated_ff=True, context_dim=None):
         super().__init__()
         self.norm1 = nn.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6)
-        self.attn = CrossAttention(query_dim=hidden_size, context_dim=None, heads=num_heads, dim_head=hidden_size // num_heads)  # is self-attn if context is none
         self.norm2 = nn.LayerNorm(hidden_size, elementwise_affine=False, eps=1e-6)
-        # mlp_hidden_dim = int(hidden_size * mlp_ratio)
-        # approx_gelu = lambda: nn.GELU(approximate="tanh")
-        # approx_gelu = lambda: nn.GELU()
         self.mlp = FeedForward(hidden_size, mult=int(mlp_ratio), dropout=dropout, glu=gated_ff)
         self.adaLN_modulation = nn.Sequential(
             nn.SiLU(),
-            nn.Linear(default(context_dim, hidden_size), 6 * hidden_size, bias=True)
+            nn.Linear(default(context_dim, hidden_size), 3 * hidden_size, bias=True)
         )
+        self.fusion_mlp = FeedForward(context_dim + hidden_size, hidden_size, mult=mlp_ratio, dropout=dropout, glu=gated_ff)
+        
+        # Zero-out adaLN modulation layers
+        nn.init.constant_(self.adaLN_modulation[-1].weight, 0)
+        nn.init.constant_(self.adaLN_modulation[-1].bias, 0)
 
     def forward(self, x, context):
-        shift_msa, scale_msa, gate_msa, shift_mlp, scale_mlp, gate_mlp = self.adaLN_modulation(context).chunk(6, dim=2)
-        x = x + gate_msa * self.attn(modulate(self.norm1(x), shift_msa, scale_msa))
-        x = x + gate_mlp * self.mlp(modulate(self.norm2(x), shift_mlp, scale_mlp))
+        shift_mlp, scale_mlp, gate_mlp = self.adaLN_modulation(context).chunk(3, dim=2)
+        fusion = self.fusion_mlp(torch.cat([x, context.expand(-1, x.size(1), -1)], dim=-1))        
+        x = x + gate_mlp * self.mlp(modulate(self.norm2(fusion), shift_mlp, scale_mlp))
         return x
 
 
@@ -368,3 +327,5 @@ class TimestepEmbedder(nn.Module):
         t_freq = self.timestep_embedding(t, self.frequency_embedding_size)
         t_emb = self.mlp(t_freq)
         return t_emb
+    
+    

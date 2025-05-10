@@ -35,6 +35,7 @@ gen_args:
   normalization_factor: 1.0 # Normalize the sum aggregation of EGNN
   attn_dropout: 0.2
   attn_block_num: 1
+  additional_proj: false
 
   # Training
   n_epochs: 3000
