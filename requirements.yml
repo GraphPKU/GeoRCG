@@ -1,0 +1,12 @@
+yacs
+sympy
+tqdm
+wandb
+tensorboard
+rdkit==2023.9.4
+pandas
+numpy
+numba
+lightning==2.2.1
+ase
+tokenizers==0.20.0
