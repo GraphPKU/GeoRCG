@@ -10,3 +10,7 @@ numba
 lightning==2.2.1
 ase
 tokenizers==0.20.0
+scikit-learn
+einops
+omegaconf
+hydra-core

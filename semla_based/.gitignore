@@ -199,3 +199,5 @@ poetry.lock
 data/geom/
 hydra_logs/
 lightning_logs/
+
+wandb/

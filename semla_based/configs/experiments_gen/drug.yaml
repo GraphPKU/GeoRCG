@@ -62,7 +62,7 @@ n_steps: 10
 snr: 0.05
 Gt_dataset: 'train'
 
-noise_sigma: 0.5
+noise_sigma: 0.3
 attn_block_num: 1
 dropout: 0.2
 
