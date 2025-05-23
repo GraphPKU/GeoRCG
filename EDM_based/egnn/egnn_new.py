@@ -157,7 +157,7 @@ class EquivariantBlock(nn.Module):
 class EGNN(nn.Module):
     def __init__(self, in_node_nf, in_edge_nf, hidden_nf, device='cpu', act_fn=nn.SiLU(), n_layers=3, attention=False,
                  norm_diff=True, out_node_nf=None, tanh=False, coords_range=15, norm_constant=1, inv_sublayers=2,
-                 sin_embedding=False, normalization_factor=100, aggregation_method='sum', rep_nf=None, attn_dropout=None, attn_block_num=1, additional_proj=False):
+                 sin_embedding=False, normalization_factor=100, aggregation_method='sum', rep_nf=None, attn_dropout=None, attn_block_num=1, additional_proj=False, use_gate=True):
         super(EGNN, self).__init__()
         if out_node_nf is None:
             out_node_nf = in_node_nf
@@ -206,20 +206,22 @@ class EGNN(nn.Module):
                             n_heads=n_heads,
                             d_head=hidden_nf // n_heads,
                             dropout=dropout,
-                            context_dim=self.rep_nf,
+                            context_dim=hidden_nf if self.rep_projs is not None else self.rep_nf,
                             self_attention=self_attention,
+                            use_gate=use_gate
                         )
                         for _ in range(attn_block_num)
                     ]
                 )
             )
-            self.rep_projs.append(
-                nn.Sequential(
-                    nn.Linear(self.rep_nf, self.hidden_nf),
-                    act_fn,
-                    nn.LayerNorm(self.hidden_nf)
+            if self.rep_projs is not None:
+                self.rep_projs.append(
+                    nn.Sequential(
+                        nn.Linear(self.rep_nf, self.hidden_nf),
+                        act_fn,
+                        nn.LayerNorm(self.hidden_nf)
+                    )
                 )
-            )
         self.to(self.device)
 
     def forward(self, h, x, edge_index, node_mask=None, edge_mask=None, rep=None):

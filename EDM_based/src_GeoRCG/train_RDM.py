@@ -144,11 +144,32 @@ def main(args):
     np.random.seed(seed)
 
     
-    # Set up for the datasets, dataloaders, dataset_info
-    data_loaders, charge_scale = dataset.retrieve_dataloaders(rdm_args)
-    data_loader_train = data_loaders['train']
+    # Set up for the datasets, data_loaders, node_dist, prop_dist, dataset_info
+    if not rdm_args.semlaflow_data:
+        data_loaders, charge_scale = dataset.retrieve_dataloaders(rdm_args)
+        data_loader_train = data_loaders["train"]
+    else:
+        data_loaders, charge_scale = dataset.semlaflow_drug_train_dataloader(rdm_args)
+        data_loader_train = data_loaders["train"]
     data_dummy = next(iter(data_loader_train))
+    if not rdm_args.semlaflow_data:
+        dataset_info = get_dataset_info(rdm_args.dataset, rdm_args.remove_h)
+        histogram = dataset_info['n_nodes']
+    else:
+        data_list = dataset.semlaflow_drug_train_dataloader(rdm_args, return_data_list=True)
+        lengths = [data.shape[0] for data in data_list]
+        # To create a histogram
+        histogram = {}
+        for length in lengths:
+            if length not in histogram:
+                histogram[length] = 1
+            else:
+                histogram[length] += 1
 
+
+    # Set up for gt_sampler, which is used for visualization
+    dataset_info = get_dataset_info(rdm_args.dataset, rdm_args.remove_h)
+    nodes_dist = DistributionNodes(histogram)
     
     # Set up for class_cond and lr and dirs
     rdm_args.class_cond = model_args.params.get("class_cond", False)    
@@ -193,9 +214,7 @@ def main(args):
         property_norms = None
         
         
-    # Set up for gt_sampler, which is used for visualization
-    dataset_info = get_dataset_info(rdm_args.dataset, rdm_args.remove_h)
-    nodes_dist = DistributionNodes(dataset_info['n_nodes'])
+
     # prepare GtSampler
     gt_sampler_args = {
         "sampler": "GtSampler",

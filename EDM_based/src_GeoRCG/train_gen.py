@@ -21,7 +21,7 @@ from equivariant_diffusion.utils import assert_correctly_masked
 from equivariant_diffusion import utils as flow_utils
 from models_GeoRCG.rep_samplers import *
 from models_GeoRCG.encoders import initialize_encoder
-from utils import  reduced_mean
+from utils import reduced_mean
 from qm9.utils import prepare_context, compute_mean_mad
 from train_test import train_epoch, test, analyze_and_save
 from configs.datasets_config import get_dataset_info

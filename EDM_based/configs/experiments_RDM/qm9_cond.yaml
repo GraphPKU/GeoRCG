@@ -37,6 +37,8 @@ rdm_args:
   encoder_path: "../checkpoints/encoder_ckpts/QM9.ckpt"
   conditioning: ["lumo"]
 
+  semlaflow_data: false
+
   # Debug
   debug: false
 

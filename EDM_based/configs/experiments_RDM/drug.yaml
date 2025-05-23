@@ -39,6 +39,8 @@ rdm_args:
 
   encoder_type: unimol
   encoder_path: ../checkpoints/encoder_ckpts/unimol_drug.pt
+  
+  semlaflow_data: false
 
   # Debug
   debug: false

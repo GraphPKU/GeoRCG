@@ -7,10 +7,24 @@ from egnn.models import EGNN_dynamics_QM9
 from equivariant_diffusion.en_diffusion import EnVariationalDiffusion
 
 
+def default(args, key, default_value):
+    try:
+        return getattr(args, key)
+    except AttributeError:
+        try:
+            return args[key]
+        except (KeyError, TypeError):
+            return default_value
+            
+
+
 def get_model(args, device, dataset_info, dataloader_train):
     histogram = dataset_info['n_nodes']
     in_node_nf = len(dataset_info['atom_decoder']) + int(args.include_charges)
     nodes_dist = DistributionNodes(histogram)
+    
+    # In the initial versions, some args are not stored. We process them here.
+    args.use_gate = default(args, 'use_gate', True)
 
     prop_dist = None
     if len(args.conditioning) > 0:
@@ -28,7 +42,7 @@ def get_model(args, device, dataset_info, dataloader_train):
         act_fn=torch.nn.SiLU(), n_layers=args.n_layers,
         attention=args.attention, tanh=args.tanh, mode=args.gen_model, norm_constant=args.norm_constant,
         inv_sublayers=args.inv_sublayers, sin_embedding=args.sin_embedding,
-        normalization_factor=args.normalization_factor, aggregation_method=args.aggregation_method, cfg=args.cfg, rep_dropout_prob=args.rep_dropout_prob, rep_nf=args.rep_nf, attn_dropout=args.attn_dropout, attn_block_num=args.attn_block_num, additional_proj=args.additional_proj
+        normalization_factor=args.normalization_factor, aggregation_method=args.aggregation_method, cfg=args.cfg, rep_dropout_prob=args.rep_dropout_prob, rep_nf=args.rep_nf, attn_dropout=args.attn_dropout, attn_block_num=args.attn_block_num, additional_proj=args.additional_proj, use_gate=args.use_gate
          )
 
     if args.probabilistic_model == 'diffusion':

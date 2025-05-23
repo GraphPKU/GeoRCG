@@ -12,7 +12,7 @@ class EGNN_dynamics_QM9(nn.Module):
                  n_dims, hidden_nf=64, device='cpu',
                  act_fn=torch.nn.SiLU(), n_layers=4, attention=False,
                  condition_time=True, tanh=False, mode='egnn_dynamics', norm_constant=0,
-                 inv_sublayers=2, sin_embedding=False, normalization_factor=100, aggregation_method='sum', rep_dropout_prob=None, cfg=None, rep_nf=None, attn_dropout=None, attn_block_num=1, additional_proj=False):
+                 inv_sublayers=2, sin_embedding=False, normalization_factor=100, aggregation_method='sum', rep_dropout_prob=None, cfg=None, rep_nf=None, attn_dropout=None, attn_block_num=1, additional_proj=False, use_gate=True):
         super().__init__()
         
         
@@ -32,7 +32,7 @@ class EGNN_dynamics_QM9(nn.Module):
                 n_layers=n_layers, attention=attention, tanh=tanh, norm_constant=norm_constant,
                 inv_sublayers=inv_sublayers, sin_embedding=sin_embedding,
                 normalization_factor=normalization_factor,
-                aggregation_method=aggregation_method, rep_nf=rep_nf, attn_dropout=attn_dropout, attn_block_num=attn_block_num, additional_proj=additional_proj)
+                aggregation_method=aggregation_method, rep_nf=rep_nf, attn_dropout=attn_dropout, attn_block_num=attn_block_num, additional_proj=additional_proj, use_gate=use_gate)
             self.in_node_nf = in_node_nf
         elif mode == 'gnn_dynamics':
             assert 0, "Not used."
@@ -64,7 +64,6 @@ class EGNN_dynamics_QM9(nn.Module):
     def forward_with_cfg(self, t, xh, node_mask, edge_mask, context, rep=None):
         assert not self.training and not self.egnn.training
         
-
         batch_size, max_node_num = t.shape[0], xh.shape[1]
         t = torch.cat([t,t])
         xh = torch.cat([xh, xh])
@@ -81,7 +80,7 @@ class EGNN_dynamics_QM9(nn.Module):
         assert_correctly_masked(updated_xh_cfg, half_node_mask)
         diffusion_utils.assert_mean_zero_with_mask(updated_xh_cfg[:, :, :self.n_dims], half_node_mask)
         return updated_xh_cfg
-        
+
 
     def _forward(self, t, xh, node_mask, edge_mask, context, rep=None):
         bs, n_nodes, dims = xh.shape

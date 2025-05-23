@@ -54,7 +54,7 @@ gen_args:
   ema_decay: 0.9999 # Amount of EMA decay, 0 means off. A reasonable value is 0.999.
   augment_noise: 0.0
   n_stability_samples: 500 # Number of samples to compute the stability
-  eval_batch_size: 50
+  eval_batch_size: 100
   normalize_factors: [1, 4, 10] # normalize factors for [x, categorical, integer]
   remove_h: false
   include_charges: false # include atom charge or not
@@ -102,5 +102,6 @@ gen_args:
   midi_geom_data: false
 
 
+  use_gate: true
 
   

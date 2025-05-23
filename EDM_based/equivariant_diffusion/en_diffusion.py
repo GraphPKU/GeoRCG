@@ -320,7 +320,7 @@ class EnVariationalDiffusion(torch.nn.Module):
     def phi(self, x, t, node_mask, edge_mask, context, rep=None):
         assert rep is not None
         # NOTE: We add cfg when applying phi. For training, we randomly replace reps with fake ones; For sampling, we use forward_with_cfg which calculates both and sums over in some proportions.
-        if not self.training and not self.cal_nll:
+        if not self.training and not self.cal_nll and self.cfg != 0.0:
             func = self.dynamics.forward_with_cfg 
         else:
             func = self.dynamics._forward # Random replacement happens inside _forward during training.
@@ -716,10 +716,6 @@ class EnVariationalDiffusion(torch.nn.Module):
         # Normalize data, take into account volume change in x.
         x, h, delta_log_px = self.normalize(x, h, node_mask)
         
-        
-
-            
-
         # Reset delta_log_px if not vlb objective.
         if self.training and self.loss_type == 'l2':
             delta_log_px = torch.zeros_like(delta_log_px)

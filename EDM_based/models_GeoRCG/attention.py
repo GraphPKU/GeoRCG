@@ -223,6 +223,10 @@ class BasicTransformerBlock(nn.Module):
         self.checkpoint = checkpoint
 
         self.use_gate = use_gate
+        
+        self.context_dim = context_dim
+        self.dim = dim
+        
         if self.use_gate:
             # We adopt node-wise gating mechanism
             self.gate_mlp_attn = nn.Sequential(
@@ -243,16 +247,17 @@ class BasicTransformerBlock(nn.Module):
             x = self.attn1(self.norm1(x), mask=mask) + x
         assert (mask is None and not self.self_attention)
         if not self.use_gate:
-            x = self.attn2(self.norm2(x), context=context, mask=mask, efficient=True) + x
+            x = self.attn2(self.norm2(x), context=context, mask=mask) + x
             x = self.ff(self.norm3(x)) + x
         else:
             
             repeated_context = context.repeat(1, x.size(1), 1)
             assert repeated_context.size(0) == x.size(0) and repeated_context.size(1) == x.size(1)
+            
             gate_attn = self.gate_mlp_attn(torch.cat([x, repeated_context], dim=-1))
             gate_ff = self.gate_mlp_ff(torch.cat([x, repeated_context], dim=-1))
             
-            x = self.attn2(self.norm2(x), context=context, mask=mask, efficient=True) * gate_attn + x
+            x = self.attn2(self.norm2(x), context=context, mask=mask) * gate_attn + x
             
             x = self.ff(self.norm3(x)) * gate_ff + x
         return x
