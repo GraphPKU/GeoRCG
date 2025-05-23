@@ -1,6 +1,6 @@
 data_path=/home/lizian/GeoRCG/EDM_based/data/geom # replace to your data path
 data_ligands=/home/lizian/GeoRCG/EDM_based/data/ligands # replace to your data path
-save_dir=/home/lizian/GeoRCG/EDM_based/unimol_drug_6layers_continue_noise1 # replace to your save path
+save_dir=/home/lizian/GeoRCG/EDM_based/unimol_log/unimol_drug_6layers_continue_noise1 # replace to your save path
 user_dir=/home/lizian/GeoRCG/EDM_based/models_GeoRCG/unimol/unimol
 n_gpu=1
 MASTER_PORT=29532

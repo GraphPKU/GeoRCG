@@ -14,3 +14,8 @@ scikit-learn
 einops
 omegaconf
 hydra-core
+imageio
+typeguard
+posebusters
+torchtyping
+Babel

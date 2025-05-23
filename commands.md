@@ -77,12 +77,12 @@ version=alpha
 
 # For camera ready
 
-## Re-run the EDM on GEOM-DRUG
+## Run the EDM on GEOM-DRUG for noise0.5 and 6-layer unimol
+
+ python -m torch.distributed.run --nproc_per_node=4 --master-port=20001 src_GeoRCG/train_gen.py experiments_gen.gen_args.exp_name=drug_unimol6layers_fullepochs_noise0.5 experiments_gen.gen_args.encoder_path=/home/muhan/zian/GeoRCG/EDM_based/unimol_drug_6layers_noise1.5/checkpoint_last.pt  experiments_gen=drug
 
 
-
-
-**AdaFusion**
+## Try AdaFusion in Semla
 
 
 python semlaflow/train_drug.py \

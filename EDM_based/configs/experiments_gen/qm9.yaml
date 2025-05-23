@@ -102,14 +102,7 @@ gen_args:
   encoder_path: "../checkpoints/encoder_ckpts/QM9.ckpt" 
   rep_nf: 256
 
-  encoder_lr: 1e-4
-  encoder_weight_decay: 0.
-  encoder_factor: 0.8
-  encoder_patience: 5
-  encoder_min_lr: 1e-6
-  light_n_layers: 3
-  light_nf: 128
-  finetune_save_path: "../checkpoints/encoder_ckpts/NEW_QM9_diffusion_finetune_l3_nf128.ckpt"
+
 
   # DEBUG
   debug: false
