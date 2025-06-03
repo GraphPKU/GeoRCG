@@ -1,13 +1,10 @@
 import math
 import sys
 from typing import Iterable
-
 import torch
-
 import models_GeoRCG.util.misc as misc
 import models_GeoRCG.util.lr_sched as lr_sched
-from models_GeoRCG.encoders import flatten_x_h
-from omegaconf.listconfig import ListConfig
+
 def train_one_epoch(model: torch.nn.Module,
                     data_loader: Iterable, optimizer: torch.optim.Optimizer,
                     device: torch.device, epoch: int, loss_scaler,

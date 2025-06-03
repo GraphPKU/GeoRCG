@@ -166,7 +166,7 @@ class CrossAttention(nn.Module):
         )
 
     def forward(self, x, context=None, mask=None):
-        if context is not None:
+        if context is None:
             efficient = False
         else:
             efficient = context.shape[1] == 1

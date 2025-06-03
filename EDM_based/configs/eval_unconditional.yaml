@@ -14,7 +14,7 @@ version: null
 
 # General Options
 use_dist: false
-save_molecules: false
+save_molecules: true
 saved_molecules_path: null
 
 # If you use saved molecules for analysis, please specify a dataset so that the info can be loaded. (If not use the saved ones, dataset info will be retrieved from gen args.)
@@ -22,7 +22,7 @@ dataset: ???
 remove_h: ???
 
 # Sample Parameters
-n_samples: 10
+n_samples: 10000
 batch_size_gen: 1000
 property: null
 
@@ -31,17 +31,17 @@ cfg: 1.0
 gen_model_path: ???
 
 # RDM Sampler Parameters
-sampler: GtSampler
+sampler: PCSampler
 
 # GtSampler Parameters
-Gt_dataset: train
-encoder_type: frad
+Gt_dataset: ???
+encoder_type: ???
 encoder_path: ???
 
 # DDIMSampler Parameters
 rdm_ckpt: ???
-step_num: 5
-eta: 1.0
+step_num: ???
+eta: ???
 
 # PCSampler Parameters (includes rdm_ckpt)
 inv_temp: 1.0
@@ -49,11 +49,6 @@ n_steps: 5
 snr: 0.01
 
 
-# Whether to eval MiDi metrics
-eval_midi: false
-midi_args:
-  use_openbabel: false
-  mol_num_limit: null
 
 
 ddim_S: null

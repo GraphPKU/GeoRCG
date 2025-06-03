@@ -4,13 +4,22 @@
     // 欲了解更多信息，请访问: https://go.microsoft.com/fwlink/?linkid=830387
     "version": "0.2.0",
     "configurations": [
+        
         {
             "name": "Python 调试程序: 当前文件",
             "type": "debugpy",
             "request": "launch",
             "program": "${file}",
             "console": "integratedTerminal",
-            "args": ["experiments_gen.cond_type=aa", "experiments_gen.trial_run=true", "experiments_gen.encoder_type=unimol_6layers", "experiments_gen.encoder_path=../checkpoints/encoder_ckpts/unimol_drug_6layers_960000.pt"],
+            "args": [
+                "ckpt_path=/home/lizian/GeoRCG/checkpoints/gen_ckpts/semlaflow_qm9_second_half_reploss0.1_noise0.3/epoch400.ckpt",
+                "data_path=/home/lizian/GeoRCG/semla_based/data/qm9_semla/qm9/smol",
+                "rdm_ckpt=/home/lizian/GeoRCG/checkpoints/rdm_ckpts/rdm_batch128_pretrainedEnc",
+                "cfg_coef=0.",
+                "encoder_type=frad",
+                "encoder_path=/home/lizian/GeoRCG/checkpoints/encoder_ckpts/QM9.ckpt"
+
+            ],
             "env": {
                 "CUDA_VISIBLE_DEVICES": "3",
             }

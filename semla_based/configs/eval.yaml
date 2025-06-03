@@ -34,6 +34,5 @@ categorical_strategy: 'uniform-sample'
 cfg_coef: -1.0
 use_gate: true
 
-sparse_rep_condition: null
 rep_loss_weight: 0.1
 

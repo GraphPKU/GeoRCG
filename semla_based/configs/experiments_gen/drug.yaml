@@ -1,6 +1,6 @@
 
 
-data_path: './data/geom'
+data_path: './data/geom/smol'
 dataset: 'geom-drugs'
 remove_h: false
 trial_run: false
@@ -19,14 +19,14 @@ size_emb: 64
 max_atoms: 256
 arch: 'semla'
 d_rep: 512
-encoder_type: 'unimol_global_first4'
-encoder_path: '../checkpoints/encoder_ckpts/unimol_drug_and_originalDataset_global_1860000.pt'
-cond_type: "attn"
+encoder_type: 'unimol_truncated'
+encoder_path: '../checkpoints/encoder_ckpts/unimol_drug_6layers_noise1.5.pt'
+cond_type: "adafusion"
 
 
 epochs: 300
 lr: 0.0003
-batch_cost: 2048 # 
+batch_cost: 4096 # 
 acc_batches: 1
 gradient_clip_val: 1.0
 type_loss_weight: 0.2 # 
@@ -54,7 +54,7 @@ optimal_transport: 'equivariant'
 resume_checkpoint: null
 
 sampler: 'GtSampler'
-rdm_ckpt: '../checkpoints/rdm_ckpts/Drug_unimol_huge/checkpoint-last.pth'
+rdm_ckpt: ???
 step_num: 250
 eta: 1.0
 inv_temp: 1.0
@@ -64,14 +64,12 @@ Gt_dataset: 'train'
 
 noise_sigma: 0.3
 attn_block_num: 1
-dropout: 0.2
+dropout: 0.0
 
-version: NOT_SPECIFIED # Wandb Log Version
+version: adafusion_unimol6layers_truncated_dropout0.0_noise0.3_reploss0.5 # Wandb Log Version
 
 original: false
 use_gate: true
 
-scheduled_noise: false
-sparse_rep_condition: null
 rep_loss_weight: 0.5
 

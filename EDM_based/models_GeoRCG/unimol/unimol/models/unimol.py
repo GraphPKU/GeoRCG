@@ -153,8 +153,7 @@ class UniMolModel(BaseUnicoreModel):
             max_seq_len=args.max_seq_len,
             activation_fn=args.activation_fn,
             no_final_head_layer_norm=args.delta_pair_repr_norm_loss < 0,
-            first4=getattr(args, "first4", False),
-            num_layers=getattr(args, "num_layers", None),
+            unimol_used_layer_num=getattr(args, "unimol_used_layer_num", None),
             )
         if args.masked_token_loss > 0:
             self.lm_head = MaskLMHead(
@@ -473,8 +472,7 @@ def base_architecture(args):
 
 @register_model_architecture("unimol", "unimol_base")
 def unimol_base_architecture(args):
-    args.num_layers = getattr(args, "num_layers", None)
-    args.first4 = getattr(args, "first4", False)
+    args.unimol_used_layer_num = getattr(args, "unimol_used_layer_num", None)
     
     
     base_architecture(args)

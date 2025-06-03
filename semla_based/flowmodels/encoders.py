@@ -31,16 +31,16 @@ vocab_index2atomic_number = {
     17: 83
 }
 
-def initialize_encoder(encoder_type, encoder_ckpt_path):
+def initialize_encoder(encoder_type, device, encoder_ckpt_path):
     assert os.path.exists(encoder_ckpt_path), f"Please ensure the existence of {encoder_ckpt_path}"
     if encoder_type == "frad":
         encoder_args_path = "./configs/frad_encoder.yaml"
         encoder_args = OmegaConf.load(encoder_args_path).encoder_args
         
-        encoder = load_model(filepath=encoder_ckpt_path, args=encoder_args, only_representation=True)
-        # encoder = encoder.to(device)
+        encoder = load_model(filepath=encoder_ckpt_path, device=device, args=encoder_args, only_representation=True)
+        encoder = encoder.to(device)
 
-    elif encoder_type == "unimol":
+    elif encoder_type == "unimol" or encoder_type == "unimol_truncated":
         try:
             import unicore
         except ImportError as e:
@@ -49,9 +49,11 @@ def initialize_encoder(encoder_type, encoder_ckpt_path):
             tasks,
             utils,
         )
-        encoder_args_path = "./configs/unimol_encoder.yaml"
+        encoder_args_path = "./configs/unimol_encoder.yaml" if encoder_type == "unimol" else "./configs/unimol_truncated_encoder.yaml"
         unimol_args = OmegaConf.load(encoder_args_path).unimol_args
         unimol_args.finetune_mol_model = encoder_ckpt_path
+        
+        
         sys.path.append("models/unimol")
         
         unimol_args = omegaconf.OmegaConf.create(unimol_args)
@@ -62,145 +64,12 @@ def initialize_encoder(encoder_type, encoder_ckpt_path):
 
         # Build model and loss
         encoder = task.build_model(unimol_args)
-        
-    elif encoder_type == "unimol_6layers":
-        try:
-            import unicore
-        except ImportError as e:
-            raise ImportError("The 'unicore' package is not installed. Please install it in https://github.com/dptech-corp/Uni-Core for the use of unimol encoder.")
-        from unicore import (
-            tasks,
-            utils,
-        )
-        encoder_args_path = "./configs/unimol_encoder_6layers.yaml"
-        unimol_args = OmegaConf.load(encoder_args_path).unimol_args
-        unimol_args.finetune_mol_model = encoder_ckpt_path
-        sys.path.append("models/unimol")
-        
-        unimol_args = omegaconf.OmegaConf.create(unimol_args)
-        utils.import_user_module(unimol_args)
-        utils.set_jit_fusion_options()
-
-        task = tasks.setup_task(unimol_args)
-
-        # Build model and loss
-        encoder = task.build_model(unimol_args)
-    elif encoder_type == "unimol_global":
-        try:
-            import unicore
-        except ImportError as e:
-            raise ImportError("The 'unicore' package is not installed. Please install it in https://github.com/dptech-corp/Uni-Core for the use of unimol encoder.")
-        from unicore import (
-            tasks,
-            utils,
-        )
-        encoder_args_path = "./configs/unimol_global_encoder.yaml"
-        unimol_args = OmegaConf.load(encoder_args_path).unimol_args
-        unimol_args.finetune_mol_model = encoder_ckpt_path
-        sys.path.append("models/unimol")
-        
-        unimol_args = omegaconf.OmegaConf.create(unimol_args)
-        utils.import_user_module(unimol_args)
-        utils.set_jit_fusion_options()
-
-        task = tasks.setup_task(unimol_args)
-
-        # Build model and loss
-        encoder = task.build_model(unimol_args)
-    elif encoder_type == "unimol_first4":
-        try:
-            import unicore
-        except ImportError as e:
-            raise ImportError("The 'unicore' package is not installed. Please install it in https://github.com/dptech-corp/Uni-Core for the use of unimol encoder.")
-        from unicore import (
-            tasks,
-            utils,
-        )
-        encoder_args_path = "./configs/unimol_encoder.yaml"
-        unimol_args = OmegaConf.load(encoder_args_path).unimol_args
-        unimol_args.finetune_mol_model = encoder_ckpt_path
-        unimol_args.first4 = True
-        sys.path.append("models/unimol")
-        
-        unimol_args = omegaconf.OmegaConf.create(unimol_args)
-        utils.import_user_module(unimol_args)
-        utils.set_jit_fusion_options()
-
-        task = tasks.setup_task(unimol_args)
-
-        # Build model and loss
-        encoder = task.build_model(unimol_args)
-    elif encoder_type == "unimol_global_first4":
-        try:
-            import unicore
-        except ImportError as e:
-            raise ImportError("The 'unicore' package is not installed. Please install it in https://github.com/dptech-corp/Uni-Core for the use of unimol encoder.")
-        from unicore import (
-            tasks,
-            utils,
-        )
-        encoder_args_path = "./configs/unimol_global_encoder.yaml"
-        unimol_args = OmegaConf.load(encoder_args_path).unimol_args
-        unimol_args.finetune_mol_model = encoder_ckpt_path
-        unimol_args.first4 = True
-        sys.path.append("models/unimol")
-        
-        unimol_args = omegaconf.OmegaConf.create(unimol_args)
-        utils.import_user_module(unimol_args)
-        utils.set_jit_fusion_options()
-
-        task = tasks.setup_task(unimol_args)
-
-        # Build model and loss
-        encoder = task.build_model(unimol_args)
-    elif encoder_type == "unimol_global_v2":
-        try:
-            import unicore
-        except ImportError as e:
-            raise ImportError("The 'unicore' package is not installed. Please install it in https://github.com/dptech-corp/Uni-Core for the use of unimol encoder.")
-        from unicore import (
-            tasks,
-            utils,
-        )
-        encoder_args_path = "./configs/unimol_global_encoder_v2.yaml"
-        unimol_args = OmegaConf.load(encoder_args_path).unimol_args
-        unimol_args.finetune_mol_model = encoder_ckpt_path
-        sys.path.append("models/unimol")
-        
-        unimol_args = omegaconf.OmegaConf.create(unimol_args)
-        utils.import_user_module(unimol_args)
-        utils.set_jit_fusion_options()
-        
-        task = tasks.setup_task(unimol_args)
-
-        # Build model and loss
-        encoder = task.build_model(unimol_args)
-        
-    elif encoder_type == "unimol_global_v2_first4":
-        try:
-            import unicore
-        except ImportError as e:
-            raise ImportError("The 'unicore' package is not installed. Please install it in https://github.com/dptech-corp/Uni-Core for the use of unimol encoder.")
-        from unicore import (
-            tasks,
-            utils,
-        )
-        encoder_args_path = "./configs/unimol_global_encoder_v2.yaml"
-        unimol_args = OmegaConf.load(encoder_args_path).unimol_args
-        unimol_args.finetune_mol_model = encoder_ckpt_path
-        unimol_args.first4 = True
-        sys.path.append("models/unimol")
-        
-        unimol_args = omegaconf.OmegaConf.create(unimol_args)
-        utils.import_user_module(unimol_args)
-        utils.set_jit_fusion_options()
-        
-        task = tasks.setup_task(unimol_args)
-
-        # Build model and loss
-        encoder = task.build_model(unimol_args)
+        encoder = encoder.to(device)
     else:
         raise ValueError(f"No encoder type of {encoder_type}")
+    
+    
+    
     return encoder
         
 

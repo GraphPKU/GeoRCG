@@ -229,7 +229,6 @@ eval_src/tmp/
 eval_src/vis_notebooks/check_effective_num_layers.py
 eval_src/vis_notebooks/vis_reps_sampler_drug.ipynb
 
-midi_geom_data/
 
 nohup.out
 other_exps/
@@ -238,3 +237,4 @@ ICML2025_anonymous/
 
 unimol_log/
 qm9/temp
+unimol_drug_6layers_noise1.5/

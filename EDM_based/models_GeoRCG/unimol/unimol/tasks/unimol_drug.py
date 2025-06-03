@@ -73,7 +73,10 @@ class DrugDataset:
         remove_h = False
         filter_size = None
         val_proportion, test_proportion = 0.1, 0.1
+        assert Path(db_path).parent.parent.parent.exists(), "Please ensure that the working dir is the 3rd parent of the data file."
         sys.path.append("../../../")
+        
+        print()
         
         import build_geom_dataset
         from configs.datasets_config import get_dataset_info

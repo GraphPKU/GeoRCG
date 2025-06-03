@@ -117,8 +117,6 @@ def main(args):
     for param in encoder.parameters():
         param.requires_grad = False
     encoder.eval()
-    encoder_optimizer = None
-    encoder_scheduler = None
     encoder_dp = encoder
     
     
@@ -199,7 +197,6 @@ def main(args):
     gradnorm_queue = utils.Queue()
     gradnorm_queue.add(3000)  # Add large value that will be flushed.
     
-    encoder_gradnorm_queue=None
     # Print meta informations
     if rank == 0:
         print(f"Args: {args}")
@@ -223,7 +220,7 @@ def main(args):
                     model_ema=model_ema, ema=ema, device=device, dtype=dtype, property_norms=property_norms,
                     nodes_dist=nodes_dist, dataset_info=dataset_info,
                     gradnorm_queue=gradnorm_queue, optim=optim, prop_dist=prop_dist,
-                    encoder=encoder_dp, rank=rank, encoder_optimizer=encoder_optimizer, encoder_dp=encoder_dp, encoder_gradnorm_queue=encoder_gradnorm_queue, sampler=sampler
+                    encoder=encoder_dp, rank=rank, encoder_dp=encoder_dp, sampler=sampler
                     )
         print(f"Epoch took {time.time() - start_epoch:.1f} seconds.")
         

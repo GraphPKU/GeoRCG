@@ -11,7 +11,7 @@ version: null
 
 
 exp_name: 'debug'
-classifiers_path: 'checkpoints/classifiers_ckpts/exp_class_alpha'
+classifiers_path: '../checkpoints/classifiers_ckpts/exp_class_alpha'
 property: 'alpha'  # options: 'alpha', 'homo', 'lumo', 'gap', 'mu', 'Cv'
 no_cuda: false  # enables CUDA training
 debug_break: false  # break point or not
@@ -19,20 +19,19 @@ log_interval: 5  # break point or not
 batch_size: 500  # break point or not
 iterations: 19  # break point or not
 task: 'gen'  # options: 'naive', 'gen', 'qm9_second_half', 'qualitative'
-n_sweeps: 10  # number of sweeps for the qualitative conditional experiment
 
-gen_model_path: ???  # Specify model path
-cfg: 1.0
+gen_model_path: ../checkpoints/gen_ckpts/edm_qm9_second_half_frad_noise0.3  # Specify model path
+cfg: 2.0
 
 sampler: PCSampler  # options: 'GtSampler', 'PCSampler', 'DDIMSampler'
-Gt_dataset: 'train'  # options: 'train', 'test', 'valid'
-encoder_type: 'frad'
-encoder_path: null
+Gt_dataset: ???  # options: 'train', 'test', 'valid'
+encoder_type: ???
+encoder_path: ???
 
-rdm_ckpt: ???
-step_num: null
-eta: null
+rdm_ckpt: ../checkpoints/rdm_ckpts/rdm_alpha/model/checkpoint-last.pth
+step_num: ???
+eta: ???
 
 inv_temp: 1.0
 n_steps: 5
-snr: 0.01  
+snr: 0.01

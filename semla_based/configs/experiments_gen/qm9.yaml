@@ -70,6 +70,4 @@ version: NOT_SPECIFIED # Wandb Log Version
 original: false
 use_gate: true
 
-scheduled_noise: false
-sparse_rep_condition: null
 rep_loss_weight: 0.0

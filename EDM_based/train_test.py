@@ -18,7 +18,7 @@ from torch.nn import functional as F
 
 
 def train_epoch(args, loader, epoch, model, model_dp, model_ema, ema, device, dtype, property_norms, optim,
-                nodes_dist, gradnorm_queue, dataset_info, prop_dist, encoder, encoder_dp, sampler, rank, encoder_optimizer=None, encoder_gradnorm_queue=None):
+                nodes_dist, gradnorm_queue, dataset_info, prop_dist, encoder, encoder_dp, sampler, rank):
     model_dp.train()
     model.train()
     encoder.eval()
@@ -70,8 +70,6 @@ def train_epoch(args, loader, epoch, model, model_dp, model_ema, ema, device, dt
         
         
         optim.zero_grad()
-        if encoder_optimizer is not None:
-            encoder_optimizer.zero_grad()
 
         # transform batch through flow
         nll, reg_term, mean_abs_z, denoised_xh = losses.compute_loss_and_nll(args, model_dp, nodes_dist,
@@ -110,8 +108,6 @@ def train_epoch(args, loader, epoch, model, model_dp, model_ema, ema, device, dt
             grad_norm = 0.
             encoder_gradnorm = 0.
         optim.step()
-        if encoder_optimizer is not None:
-            encoder_optimizer.step()
         
         # Update EMA if enabled.
         if args.ema_decay > 0:

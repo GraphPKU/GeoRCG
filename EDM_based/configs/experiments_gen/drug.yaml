@@ -1,7 +1,7 @@
 
 gen_args:
   # logging
-  exp_name: 'drug'
+  exp_name: 'drug_unimol6layers_fullepochs_noise0.5'
   wandb_usr: zian-li
   no_wandb: false # Disable wandb
   online: true # true = wandb online -- false = wandb offline
@@ -81,27 +81,25 @@ gen_args:
   # Note this can be changed after training during evaluation. We set it here just to monitor the trajectory.
   sampler: GtSampler # ["PCSampler", "GtSampler", "DDIMSampler"]
   #     For DDIMSampler and PCSampler
-  rdm_ckpt: '.../checkpoints/rdm_ckpts/rdm_diffusion_finetuned.pth' # resume from checkpoint
+  rdm_ckpt: ??? # resume from checkpoint
   #     For DDIMSampler
-  step_num: 250
-  eta: 1.0
+  step_num: ???
+  eta: ???
   #     For PCSampler
-  inv_temp: 0.5
-  n_steps: 10
+  inv_temp: ???
+  n_steps: ???
   #     For GtSampler
   Gt_dataset: train # ["train", "test", "valid"]
 
   # Encoder
   encoder_type: unimol # unimol or frad
-  encoder_path: "../checkpoints/encoder_ckpts/unimol_drug.pt" 
+  encoder_path: "../checkpoints/encoder_ckpts/unimol_drug_6layers_noise1.5.pt" 
   rep_nf: 512
 
   # DEBUG
   debug: false
 
-  midi_geom_data: false
-
-
   use_gate: true
+
 
   

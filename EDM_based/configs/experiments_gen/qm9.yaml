@@ -85,14 +85,14 @@ gen_args:
   # Note this can be changed after training during evaluation. We set it here just to monitor the trajectory.
   sampler: GtSampler # ["PCSampler", "GtSampler", "DDIMSampler"]
   #     For DDIMSampler and PCSampler
-  rdm_ckpt: null # resume from checkpoint
+  rdm_ckpt: ??? # resume from checkpoint
   #     For DDIMSampler
-  step_num: 250
-  eta: 1.0
+  step_num: ???
+  eta: ???
   #     For PCSampler
-  inv_temp: 1.0
-  n_steps: 5
-  snr: 0.01
+  inv_temp: ???
+  n_steps: ???
+  snr: ???
   #     For GtSampler
   Gt_dataset: train # ["train", "test", "valid"]
 
@@ -109,7 +109,5 @@ gen_args:
 
 
   use_gate: true
-
-
 
   

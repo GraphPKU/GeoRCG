@@ -238,14 +238,7 @@ def eval(args):
 
     # For evaluation. Only evaluate on the main process.
     if rank == 0:
-        if args.eval_midi:
-            # eval with midi metrics
-            assert dataset_info["name"] == "qm9"
-            from eval_src.eval_midi_utils import main_midi
-            metrics = main_midi(cfg=args.midi_args, edm_molecules=molecules)
-        else:
-            # eval with edm metrics
-            metrics = analyze_all_metrics(molecules, dataset_info)
+        metrics = analyze_all_metrics(molecules, dataset_info)
         for k, val in metrics.items():
             logging.info(f"{k}: {val}")
     if args.use_dist:

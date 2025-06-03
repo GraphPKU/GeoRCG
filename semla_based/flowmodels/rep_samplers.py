@@ -332,7 +332,7 @@ def initilize_rep_sampler(rep_sampler_args, dataset_args=None, debug=False, data
         assert dataset_args is not None
 
         # Set up for encoder
-        encoder = initialize_encoder(encoder_type=rep_sampler_args.encoder_type, encoder_ckpt_path=rep_sampler_args.encoder_path)
+        encoder = initialize_encoder(encoder_type=rep_sampler_args.encoder_type, encoder_ckpt_path=rep_sampler_args.encoder_path, device=torch.device("cpu"))
         for param in encoder.parameters():
             param.requires_grad = False
         encoder.eval()

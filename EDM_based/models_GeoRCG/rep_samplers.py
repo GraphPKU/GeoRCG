@@ -307,7 +307,7 @@ class PCSampler(BaseRepSampler):
         return sampled_rep
     
     
-def initilize_rep_sampler(rep_sampler_args, device, dataset_args=None, debug=False, num_layers=None):
+def initilize_rep_sampler(rep_sampler_args, device, dataset_args=None, debug=False):
     # Initialize the representation sampler
     if rep_sampler_args.sampler == "GtSampler":
         # Params
@@ -315,12 +315,9 @@ def initilize_rep_sampler(rep_sampler_args, device, dataset_args=None, debug=Fal
         assert rep_sampler_args.encoder_path is not None
         assert dataset_args is not None
             
-        if not getattr(rep_sampler_args, "midi_geom_data", False):
-            datasets, collate_fn = dataset.retrieve_dataloaders(dataset_args, raw_datasets_and_collate_fn=True)
-        else:
-            datasets, collate_fn = dataset.retrieve_dataloaders_midi_geom(dataset_args, raw_datasets_and_collate_fn=True)
+        datasets, collate_fn = dataset.retrieve_dataloaders(dataset_args, raw_datasets_and_collate_fn=True)
         # Set up for encoder
-        encoder = initialize_encoder(encoder_type=rep_sampler_args.encoder_type, device=device, encoder_ckpt_path=rep_sampler_args.encoder_path, num_layers=num_layers)
+        encoder = initialize_encoder(encoder_type=rep_sampler_args.encoder_type, device=device, encoder_ckpt_path=rep_sampler_args.encoder_path)
         for param in encoder.parameters():
             param.requires_grad = False
         encoder.eval()

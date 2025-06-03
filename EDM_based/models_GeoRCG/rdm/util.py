@@ -76,10 +76,12 @@ def load_model(config, ckpt):
 def get_obj_from_str(string, reload=False):
     module, cls = string.rsplit(".", 1)
     # TODO: Delete this. This is temporarily used because we changed the file strcture while using older ckpts.
-    if module.startswith("rdm"): module = "models." + module
+    if module.startswith("models") and not module.startswith("models_GeoRCG"): module = module.replace("models", "models_GeoRCG", 1)
+    if module.startswith("rdm"): module = "models_GeoRCG." + module
     if reload:
         module_imp = importlib.import_module(module)
         importlib.reload(module_imp)
+    print(module)
     return getattr(importlib.import_module(module, package=None), cls)
 
 

@@ -22,14 +22,8 @@ def analyze_all_metrics(molecules, dataset_info):
     metrics = BasicMolecularMetrics(dataset_info)
     stability_dict = metrics.compute_stability(processed_list)
     rdkit_metrics = metrics.evaluate(processed_list)[0]
-    pb_ratio = metrics.compute_posebusters(processed_list)
     _, relaxed_validity = metrics.compute_relaxed_validity(processed_list)
     
-    # Calculate energy and strain metrics introduced in Semla
-    energy = metrics.compute_energy(processed_list)
-    energy_per_atom = metrics.compute_energy_per_atom(processed_list)
-    strain = metrics.compute_strain_energy(processed_list)
-    strain_per_atom = metrics.compute_strain_energy_per_atom(processed_list)
     
     calculated_metrics = {
         "molecule_stable": stability_dict['mol_stable'],
@@ -37,12 +31,7 @@ def analyze_all_metrics(molecules, dataset_info):
         "validity": rdkit_metrics[0],
         "uniqueness": rdkit_metrics[1],
         "novelty": rdkit_metrics[2],
-        "pb_valid": pb_ratio,
         "relaxed_validity": relaxed_validity,
-        "energy": energy,
-        "energy_per_atom": energy_per_atom,
-        "strain": strain,
-        "strain_per_atom": strain_per_atom,
     }
     
     # Process the metric
@@ -90,8 +79,6 @@ def prepare_model_and_dataset_info(
     with open(join(eval_args.gen_model_path, 'args.pickle'), 'rb') as f:
         args = pickle.load(f)
     gen_args = args.gen_args
-    if gen_args.get("attn_dropout", None) is None:
-        gen_args.attn_dropout = 0.
     # Modify the gen_args for sampling
     if eval_args.cfg is not None:
         print(f"Warning: Changing gen_args.cfg to {eval_args.cfg}")
@@ -106,8 +93,6 @@ def prepare_model_and_dataset_info(
     
     
     utils.create_folders(args)
-    # print(f"gen_args: {args}")
-    # print(f"eval_args: {eval_args}")
     
 
     # Retrieve QM9 dataloaders
@@ -118,12 +103,7 @@ def prepare_model_and_dataset_info(
     # Load gen model
     generative_model, nodes_dist, prop_dist = get_model(args, device, dataset_info, dataloaders['train'])
     assert prop_dist is None, "We only use unconditional gen."
-    if prop_dist is not None:
-        property_norms = compute_mean_mad(dataloaders, args.conditioning, args.dataset)
-        prop_dist.set_normalizer(property_norms)
-        
-    if eval_args.property is not None:
-        prop_dist = prop_dist_condition
+    prop_dist = prop_dist_condition if eval_args.property is not None else None
         
     generative_model.to(device)
     generative_model.eval()

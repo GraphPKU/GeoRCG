@@ -16,7 +16,7 @@ from data.datasets import GeometricDataset
 from data.datamodules import GeometricInterpolantDM
 from data.interpolate import GeometricInterpolant, GeometricNoiseSampler
 from flowmodels.encoders import initialize_encoder
-from flowmodels.rep_samplers import *
+from flowmodels.rep_samplers import initilize_rep_sampler
 import hydra
 
 import time
@@ -134,8 +134,11 @@ def load_model(args, vocab):
         cat_noise_level=args.cat_sampling_noise_level
     )
     # Set up for encoder
-    encoder = initialize_encoder(encoder_type=args.encoder_type,
-                                 encoder_ckpt_path=args.encoder_path)
+    encoder = initialize_encoder(
+        encoder_type=args.encoder_type,
+        encoder_ckpt_path=args.encoder_path,
+        device=torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        )
     for param in encoder.parameters():
         param.requires_grad = False
     encoder.eval()  
@@ -287,8 +290,7 @@ def main(args):
     print("Model complete.")
 
     print("Initialising metrics...")
-    # metrics, stab_metrics = util.init_metrics(args.data_path, model)
-    metrics, stab_metrics = None, None
+    metrics, stab_metrics = util.init_metrics(args.data_path, model)
     print("Metrics complete.")
 
     print("Running evaluation...")

@@ -73,3 +73,11 @@ original=true \
 property_condition=true \
 property=alpha \
 version=alpha
+
+
+
+
+
+
+
+python eval_src/eval_conditional_qm9.py gen_model_path=../checkpoints/gen_ckpts/edm_qm9_second_half_frad_noise0.3 rdm_ckpt=../checkpoints/rdm_ckpts/rdm_batch128_pretrainedEncCrossAttn_ALPHA/model/checkpoint-last.pth cfg=2.

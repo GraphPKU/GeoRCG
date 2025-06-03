@@ -201,3 +201,6 @@ hydra_logs/
 lightning_logs/
 
 wandb/
+outputs/
+data/qm9_semla/
+__pycache__/

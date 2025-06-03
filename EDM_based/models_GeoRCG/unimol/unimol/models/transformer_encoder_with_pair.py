@@ -26,8 +26,7 @@ class TransformerEncoderWithPair(nn.Module):
         activation_fn: str = "gelu",
         post_ln: bool = False,
         no_final_head_layer_norm: bool = False,
-        first4: bool = False,
-        num_layers: int = None,
+        unimol_used_layer_num: int = None,
     ) -> None:
 
         super().__init__()
@@ -62,15 +61,10 @@ class TransformerEncoderWithPair(nn.Module):
             ]
         )
         
-        # num_layers and first4 are mutually exclusive
-        assert not (num_layers is not None and first4)
         
-        self.num_layers = num_layers
-        self.first4 = first4
-        if self.num_layers is not None:
-            print(f"Using only the first {self.num_layers} layers of the encoder")
-        if self.first4:
-            print("Using only the first 4 layers of the encoder")
+        self.unimol_used_layer_num = unimol_used_layer_num
+        if self.unimol_used_layer_num is not None:
+            print(f"Using only the first {self.unimol_used_layer_num} layers of the encoder")
         
     def forward(
         self,
@@ -109,11 +103,8 @@ class TransformerEncoderWithPair(nn.Module):
             x, attn_mask, _ = self.layers[i](
                 x, padding_mask=padding_mask, attn_bias=attn_mask, return_attn=True
             )
-            if self.first4:
-                if i == 3:
-                    break
-            if self.num_layers is not None:
-                if i == self.num_layers - 1:
+            if self.unimol_used_layer_num is not None:
+                if i == self.unimol_used_layer_num - 1:
                     break
 
         def norm_loss(x, eps=1e-10, tolerance=1.0):

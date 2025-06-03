@@ -15,8 +15,9 @@ rdm_args:
   wandb_usr: null
   no_wandb: false # Disable wandb
   online: true # true = wandb online -- false = wandb offline
-  exp_name: 'frad'
+  exp_name: 'rdm_qm9_uncond'
   vis_interval: 200
+  save_individual: 200
 
   # Optimizer parameters
   weight_decay: 0.005 # weight decay (default: 0.05)

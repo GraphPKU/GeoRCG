@@ -150,8 +150,9 @@ def build_model(args, dm, vocab):
     )
 
     # Set up for encoder
-    encoder = initialize_encoder(encoder_type=args.encoder_type,
-                                 encoder_ckpt_path=args.encoder_path)
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    encoder = initialize_encoder(encoder_type=args.encoder_type, encoder_ckpt_path=args.encoder_path, device=device)
+                                 
     for param in encoder.parameters():
         param.requires_grad = False
     encoder.eval()
@@ -162,6 +163,7 @@ def build_model(args, dm, vocab):
 
     if args.resume_checkpoint is not None:
         print(f"Loading model from checkpoint {args.resume_checkpoint}")
+        # NOTE: Some hyperparameters are overwriten! Be careful!
         fm_model = MolecularCFM.load_from_checkpoint(
             checkpoint_path=args.resume_checkpoint,
             strict=False,
@@ -189,11 +191,12 @@ def build_model(args, dm, vocab):
             
             encoder=encoder,
             rdm=rep_sampler,
-            d_rep=args.d_rep,
-            cfg_coef=args.cfg_coef,
             noise_sigma=args.noise_sigma,
             rep_dropout_prob=args.rep_dropout_prob,
+            d_rep=args.d_rep,
+            cfg_coef=args.cfg_coef,
             rep_loss_weight=args.rep_loss_weight,
+            original=args.original,
             **hparams,
             )
     else:
@@ -409,7 +412,7 @@ def main(args):
     # print(f"Set torch compiler cache size to {torch._dynamo.config.cache_size_limit}")
 
     L.seed_everything(12345)
-    util.disable_lib_stdout()
+    # util.disable_lib_stdout()
     util.configure_fs()
 
     print("Building model vocab...")
@@ -427,13 +430,13 @@ def main(args):
     trainer = build_trainer(args)
 
     print("Fitting datamodule to model...")
-    # if args.resume_checkpoint is None:
-    #     trainer.fit(model, datamodule=dm)
-    # else:
-    #     print(f"Resuming training from checkpoint {args.resume_checkpoint}")
-    #     trainer.fit(model, datamodule=dm, ckpt_path=args.resume_checkpoint)
+    if args.resume_checkpoint is None:
+        trainer.fit(model, datamodule=dm)
+    else:
+        print(f"Resuming training from checkpoint {args.resume_checkpoint}")
+        trainer.fit(model, datamodule=dm, ckpt_path=args.resume_checkpoint)
     
-    trainer.fit(model, datamodule=dm)
+    # trainer.fit(model, datamodule=dm)
     
     print("Training complete.")
 

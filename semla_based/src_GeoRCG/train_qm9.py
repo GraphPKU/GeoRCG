@@ -426,13 +426,13 @@ def main(args):
     trainer = build_trainer(args)
 
     print("Fitting datamodule to model...")
-    # if args.resume_checkpoint is None:
-    #     trainer.fit(model, datamodule=dm)
-    # else:
-    #     print(f"Resuming training from checkpoint {args.resume_checkpoint}")
-    #     trainer.fit(model, datamodule=dm, ckpt_path=args.resume_checkpoint)
+    if args.resume_checkpoint is None:
+        trainer.fit(model, datamodule=dm)
+    else:
+        print(f"Resuming training from checkpoint {args.resume_checkpoint}")
+        trainer.fit(model, datamodule=dm, ckpt_path=args.resume_checkpoint)
     
-    trainer.fit(model, datamodule=dm)
+    # trainer.fit(model, datamodule=dm)
     
     print("Training complete.")
 

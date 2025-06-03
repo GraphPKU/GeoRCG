@@ -488,6 +488,18 @@ class EquiMessagePassingLayer(torch.nn.Module):
 
         # TODO: initialize cross attention
         if not original:
+            self.rep_projs = nn.ModuleList(
+                [nn.Sequential(
+                    nn.Linear(d_rep, d_model),
+                    nn.SiLU(inplace=False),
+                    nn.LayerNorm(d_model),
+                    
+                    nn.Linear(d_rep, d_model),
+                    nn.SiLU(inplace=False),
+                    nn.LayerNorm(d_model)
+                ) for _ in range(attn_block_num)]
+            )
+            
             self.attn = nn.ModuleList([BasicTransformerBlock(
                 dim=d_model,
                 n_heads=n_cross_attn_heads,
@@ -535,8 +547,11 @@ class EquiMessagePassingLayer(torch.nn.Module):
         """
         # TODO: complete cross attention
         if rep is not None:
-            for layer in self.attn:
-                node_feats = layer(node_feats, context=rep.unsqueeze(1)) * node_mask[:, 0, :].unsqueeze(2)
+            for i in range(len(self.attn)):
+                attn_layer = self.attn[i]
+                proj_layer = self.rep_projs[i]
+                rep_proj = proj_layer(rep)
+                node_feats = attn_layer(node_feats, context=rep_proj.unsqueeze(1)) * node_mask[:, 0, :].unsqueeze(2)
         if edge_feats is not None and self.d_edge_in is None:
             raise ValueError("edge_feats was provided but the model was initialised with d_edge_in as None.")
 
@@ -893,11 +908,11 @@ class SemlaGenerator(MolecularGenerator):
                 torch.nn.Linear(property_emb, property_emb)
             )
             
-        self.rep_embedder = nn.Sequential(
-            nn.Linear(d_model, d_model, bias=True),
-            nn.SiLU(),
-            nn.Linear(d_model, d_model, bias=True),
-        )
+        # self.rep_embedder = nn.Sequential(
+        #     nn.Linear(d_model, d_model, bias=True),
+        #     nn.SiLU(),
+        #     nn.Linear(d_model, d_model, bias=True),
+        # )
         self.timestep_embedder = TimestepEmbedder(d_model, frequency_embedding_size=512) if hparams["cond_type"] != "attn" else None
 
     def forward(
@@ -971,9 +986,9 @@ class SemlaGenerator(MolecularGenerator):
             edge_feats = self.edge_in_proj(edge_feats)
         
         # To embed rep
-        rep = self.rep_embedder(rep)
-        if self.timestep_embedder is not None:
-            rep = rep + self.timestep_embedder(t.squeeze()[:, 0])
+        # rep = self.rep_embedder(rep)
+        # if self.timestep_embedder is not None:
+        #     rep = rep + self.timestep_embedder(t.squeeze()[:, 0])
 
         out = self.dynamics(
             coords,

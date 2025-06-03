@@ -34,14 +34,14 @@ def get_dataloader(args_gen):
 def get_SelfConditionDiffusionDataloader(eval_args):
     class SelfConditionDiffusionDataloader:
         def __init__(self, model, nodes_dist, prop_dist, device,
-                    batch_size, iterations, dataset_info, args_gen, unkown_labels=False):
+                    batch_size, iterations, dataset_info, args_gen, unknown_labels=False):
             self.model = model
             self.nodes_dist = nodes_dist
             self.prop_dist = prop_dist
             self.batch_size = batch_size
             self.iterations = iterations
             self.device = device
-            self.unkown_labels = unkown_labels
+            self.unknown_labels = unknown_labels
             self.dataset_info = dataset_info
             self.i = 0
             self.args_gen = args_gen
@@ -69,7 +69,7 @@ def get_SelfConditionDiffusionDataloader(eval_args):
             edge_mask = edge_mask.view(bs * n_nodes * n_nodes, 1)
 
             prop_key = self.prop_dist.properties[0]
-            if self.unkown_labels:
+            if self.unknown_labels:
                 context[:] = self.prop_dist.normalizer[prop_key]['mean']
             else:
                 context = context * self.prop_dist.normalizer[prop_key]['mad'] + self.prop_dist.normalizer[prop_key]['mean']
@@ -111,10 +111,6 @@ def get_SelfConditionDiffusionDataloader(eval_args):
     
 import hydra
 def main_quantitative(args):
-    # Get classifier
-    #if args.task == "numnodes":
-    #    class_dir = args.classifiers_path[:-6] + "numnodes_%s" % args.property
-    #else:
     class_dir = args.classifiers_path
     classifier = get_classifier(class_dir).to(args.device)
 

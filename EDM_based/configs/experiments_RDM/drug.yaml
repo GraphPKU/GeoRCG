@@ -15,8 +15,9 @@ rdm_args:
   wandb_usr: null
   no_wandb: false # Disable wandb
   online: true # true = wandb online -- false = wandb offline
-  exp_name: 'test'
+  exp_name: 'rdm_drug'
   vis_interval: 2
+  save_individual: 20
 
   # Optimizer parameters
   weight_decay: 0.005 # weight decay (default: 0.05)
@@ -44,6 +45,7 @@ rdm_args:
 
   # Debug
   debug: false
+  
 
 
 model_args:

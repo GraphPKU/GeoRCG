@@ -238,15 +238,14 @@ def main(args):
             misc.save_model_last(
                 args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
                 loss_scaler=loss_scaler, epoch=epoch)
-            if rdm_args.output_dir and (epoch % rdm_args.vis_interval == 0 or epoch + 1 == rdm_args.epochs):
+            if rdm_args.output_dir and (epoch % rdm_args.vis_interval == 0 or epoch + 1 == rdm_args.epochs) and not rdm_args.debug and epoch != 0:
+                s = time.time()
+                vis_tsne(running_rdm_args=rdm_args, save_dir=rdm_args.vis_output_dir, epoch=epoch, inv_temp=1.0, device=device, nodes_dist=nodes_dist, gtsampler=gtsampler)
+                print(f"Visualization took {time.time() - s}s.")
+            if rdm_args.output_dir and (epoch % rdm_args.save_individual == 0 or epoch + 1 == rdm_args.epochs) and not rdm_args.debug:
                 misc.save_model(
                     args=args, model=model, model_without_ddp=model_without_ddp, optimizer=optimizer,
                     loss_scaler=loss_scaler, epoch=epoch)
-                s = time.time()
-                if not rdm_args.debug:
-                    vis_tsne(running_rdm_args=rdm_args, save_dir=rdm_args.vis_output_dir, epoch=epoch, inv_temp=1.0, device=device, nodes_dist=nodes_dist, gtsampler=gtsampler)
-                print(f"Visualization took {time.time() - s}s.")
-            
             wandb.log(train_stats, commit=True)
         if rdm_args.dp:
             dist.barrier()
