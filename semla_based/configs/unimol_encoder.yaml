@@ -1,10 +1,10 @@
 unimol_args:
-  data: /data/muhan/zian/geom
+  data: ./data/geom
   dict_name: dict.txt
   user_dir: ./models_GeoRCG/unimol/unimol
   train_subset: train
   valid_subset: valid
-  data_path: /data/muhan/zian/geom
+  data_path: ./data/geom
   save_dir: ./unimol_pretrain_save
 
   n_gpu: 2

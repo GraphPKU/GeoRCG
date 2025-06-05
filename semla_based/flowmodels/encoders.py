@@ -40,7 +40,7 @@ def initialize_encoder(encoder_type, device, encoder_ckpt_path):
         encoder = load_model(filepath=encoder_ckpt_path, device=device, args=encoder_args, only_representation=True)
         encoder = encoder.to(device)
 
-    elif encoder_type == "unimol" or encoder_type == "unimol_truncated":
+    elif encoder_type == "unimol" or encoder_type == "unimol_truncated" or encoder_type == "unimol_global":
         try:
             import unicore
         except ImportError as e:
@@ -49,7 +49,7 @@ def initialize_encoder(encoder_type, device, encoder_ckpt_path):
             tasks,
             utils,
         )
-        encoder_args_path = "./configs/unimol_encoder.yaml" if encoder_type == "unimol" else "./configs/unimol_truncated_encoder.yaml"
+        encoder_args_path = "./configs/unimol_encoder.yaml" if encoder_type == "unimol" else "./configs/unimol_truncated_encoder.yaml" if encoder_type == "unimol_truncated" else "./configs/unimol_global_encoder.yaml"
         unimol_args = OmegaConf.load(encoder_args_path).unimol_args
         unimol_args.finetune_mol_model = encoder_ckpt_path
         
@@ -169,19 +169,6 @@ def get_global_representation(node_mask, rep_encoder, x, h, noise_sigma=0., devi
     if noise_sigma > 0.:
         noise = torch.randn(rep.shape, device=rep.device) * noise_sigma
         rep = rep + noise
-    
-
-    if noise_sigma < 0.:
-        # NOTE: temp codes only for simplicity. Modify it later!
-        # NOTE: Batch-level
-        rep_abs_range = (rep - torch.mean(rep, dim=0, keepdim=True)).abs().max(dim=0, keepdim=True)[0]  # (1, rep_dim)
-        
-        # Calculate standard deviation for the noise based on abs range and noise sigma
-        noise_std = rep_abs_range * abs(noise_sigma)
-        
-        # Apply noise with calculated std
-        noise = torch.randn_like(rep, device=rep.device) * noise_std  # Generate noise with calculated std deviation
-        rep = rep + noise  # Add noise to representation
 
 
     return rep

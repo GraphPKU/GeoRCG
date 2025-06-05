@@ -12,12 +12,12 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "--ckpt_path", "/home/lizian/GeoRCG_new/semla-flow/300epochs.ckpt",
-                "--data_path", "/home/lizian/GeoRCG/semla_based/data/qm9_semla/qm9/smol",
+                "ckpt_path=../checkpoints/gen_ckpts/semlaflow_unimol_global_truncated4_reploss0.5_noise0.3/checkpoints/epoch299.ckpt",
+                "data_path=./data/geom",
 
             ],
             "env": {
-                "CUDA_VISIBLE_DEVICES": "3",
+                "CUDA_VISIBLE_DEVICES": "2",
             }
         }
     ]

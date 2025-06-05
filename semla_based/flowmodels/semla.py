@@ -333,7 +333,8 @@ class EquivariantMLP(torch.nn.Module):
 
 
 class NodeFeedForward(torch.nn.Module):
-    def __init__(self, d_model, n_coord_sets, d_ff=None, proj_sets=None, coord_norm="length"):
+    def __init__(self, d_model, n_coord_sets, d_ff=None, proj_sets=None, coord_norm="length", 
+                 d_rep=None, dropout=0.0, n_cross_attn_heads=4, attn_block_num=None,  original=True, use_gate=True, cond_type='none'):
         super().__init__()
 
         self.node_norm = torch.nn.LayerNorm(d_model)
@@ -342,8 +343,45 @@ class NodeFeedForward(torch.nn.Module):
         self.invariant_mlp = LengthsMLP(d_model, n_coord_sets, d_ff=d_ff)
         self.equivariant_mlp = EquivariantMLP(d_model, n_coord_sets, proj_sets=proj_sets)
 
+        if not original:
+            if cond_type != "attn": # Attention do not use rep_projs
+                self.rep_projs = nn.ModuleList(
+                    [nn.Sequential(
+                        nn.Linear(d_rep, d_model),
+                        nn.SiLU(inplace=False),
+                        nn.LayerNorm(d_model),
+                        
+                        nn.Linear(d_rep, d_model),
+                        nn.SiLU(inplace=False),
+                        nn.LayerNorm(d_model)
+                    ) for _ in range(attn_block_num)]
+                )
+            else:
+                self.rep_projs = None
+            
+            self.attn = nn.ModuleList([BasicTransformerBlock(
+                dim=d_model,
+                n_heads=n_cross_attn_heads,
+                d_head=d_model // n_cross_attn_heads,
+                dropout=dropout,
+                context_dim=d_rep,
+                self_attention=False,
+                use_gate=use_gate
+            )
+                for _ in range(attn_block_num)] if cond_type == "attn" else
+                [
+                    AdaZeroFusion(
+                        hidden_size=d_model,
+                        mlp_ratio=2.0,
+                        dropout=dropout,
+                        gated_ff=True,
+                        context_dim=d_rep
+                    )
+                ]
+                )
+        
 
-    def forward(self, coord_sets, node_feats, node_mask):
+    def forward(self, coord_sets, node_feats, node_mask, rep=None):
         """Pass data through the layer
 
         Args:
@@ -354,7 +392,10 @@ class NodeFeedForward(torch.nn.Module):
         Returns:
             torch.Tensor, torch.Tensor: Updates to coords and node features
         """
-
+        if rep is not None:
+            for i in range(len(self.attn)):
+                rep_proj = self.rep_projs[i](rep) if self.rep_projs is not None else rep
+                node_feats = self.attn[i](node_feats, context=rep_proj.unsqueeze(1)) * node_mask[:, 0, :].unsqueeze(2)
         node_feats = self.node_norm(node_feats)
         coord_sets = self.coord_norm(coord_sets, node_mask)
 
@@ -488,17 +529,20 @@ class EquiMessagePassingLayer(torch.nn.Module):
 
         # TODO: initialize cross attention
         if not original:
-            self.rep_projs = nn.ModuleList(
-                [nn.Sequential(
-                    nn.Linear(d_rep, d_model),
-                    nn.SiLU(inplace=False),
-                    nn.LayerNorm(d_model),
-                    
-                    nn.Linear(d_rep, d_model),
-                    nn.SiLU(inplace=False),
-                    nn.LayerNorm(d_model)
-                ) for _ in range(attn_block_num)]
-            )
+            if cond_type != "attn": # Attention do not use rep_projs
+                self.rep_projs = nn.ModuleList(
+                    [nn.Sequential(
+                        nn.Linear(d_rep, d_model),
+                        nn.SiLU(inplace=False),
+                        nn.LayerNorm(d_model),
+                        
+                        nn.Linear(d_rep, d_model),
+                        nn.SiLU(inplace=False),
+                        nn.LayerNorm(d_model)
+                    ) for _ in range(attn_block_num)]
+                )
+            else:
+                self.rep_projs = None
             
             self.attn = nn.ModuleList([BasicTransformerBlock(
                 dim=d_model,
@@ -548,10 +592,8 @@ class EquiMessagePassingLayer(torch.nn.Module):
         # TODO: complete cross attention
         if rep is not None:
             for i in range(len(self.attn)):
-                attn_layer = self.attn[i]
-                proj_layer = self.rep_projs[i]
-                rep_proj = proj_layer(rep)
-                node_feats = attn_layer(node_feats, context=rep_proj.unsqueeze(1)) * node_mask[:, 0, :].unsqueeze(2)
+                rep_proj = self.rep_projs[i](rep) if self.rep_projs is not None else rep
+                node_feats = self.attn[i](node_feats, context=rep_proj.unsqueeze(1)) * node_mask[:, 0, :].unsqueeze(2)
         if edge_feats is not None and self.d_edge_in is None:
             raise ValueError("edge_feats was provided but the model was initialised with d_edge_in as None.")
 
@@ -654,6 +696,7 @@ class EquiInvDynamics(torch.nn.Module):
             dropout=dropout,
             attn_block_num=attn_block_num,
             original=original,
+            n_cross_attn_heads=4,
             use_gate=use_gate,
             cond_type=cond_type
         )
@@ -675,7 +718,8 @@ class EquiInvDynamics(torch.nn.Module):
                 attn_block_num=attn_block_num,
                 original=original,
                 use_gate=use_gate,
-                cond_type=cond_type
+                cond_type=cond_type,
+                n_cross_attn_heads=4,
             )
             out_layer = EquiMessagePassingLayer(
                 d_model,
@@ -691,13 +735,16 @@ class EquiInvDynamics(torch.nn.Module):
                 attn_block_num=attn_block_num,
                 original=original,
                 use_gate=use_gate,
+                n_cross_attn_heads=4,
                 cond_type=cond_type
             )
             layers = [in_layer] + layers + [out_layer]
 
         self.layers = torch.nn.ModuleList(layers)
 
-        self.final_ff_block = NodeFeedForward(d_model, n_coord_sets, coord_norm=coord_norm)
+        self.final_ff_block = NodeFeedForward(d_model, n_coord_sets, coord_norm=coord_norm,
+                                              d_rep=d_rep, dropout=dropout, attn_block_num=attn_block_num,
+                                              original=original, use_gate=use_gate, cond_type=cond_type, n_cross_attn_heads=4)
         self.coord_norm = CoordNorm(n_coord_sets, norm=coord_norm)
         self.feat_norm = torch.nn.LayerNorm(d_model)
 
