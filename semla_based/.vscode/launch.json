@@ -12,12 +12,8 @@
             "program": "${file}",
             "console": "integratedTerminal",
             "args": [
-                "ckpt_path=/home/lizian/GeoRCG/checkpoints/gen_ckpts/semlaflow_qm9_second_half_reploss0.1_noise0.3/epoch400.ckpt",
-                "data_path=/home/lizian/GeoRCG/semla_based/data/qm9_semla/qm9/smol",
-                "rdm_ckpt=/home/lizian/GeoRCG/checkpoints/rdm_ckpts/rdm_batch128_pretrainedEnc",
-                "cfg_coef=0.",
-                "encoder_type=frad",
-                "encoder_path=/home/lizian/GeoRCG/checkpoints/encoder_ckpts/QM9.ckpt"
+                "--ckpt_path", "/home/lizian/GeoRCG_new/semla-flow/300epochs.ckpt",
+                "--data_path", "/home/lizian/GeoRCG/semla_based/data/qm9_semla/qm9/smol",
 
             ],
             "env": {

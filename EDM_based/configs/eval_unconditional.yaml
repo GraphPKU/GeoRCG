@@ -1,5 +1,4 @@
 defaults:
-  - midi_args: midi
   - _self_
 
 

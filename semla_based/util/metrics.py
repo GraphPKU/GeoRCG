@@ -6,7 +6,7 @@ from rdkit import Chem
 from torchmetrics import Metric
 
 import util.rdkit as smolRD
-
+import pickle
 
 ALLOWED_VALENCIES = {
     "H": {
@@ -218,6 +218,9 @@ class Novelty(GenerativeMetric):
     def update(self, mols: List[Chem.rdchem.Mol]) -> None:
         smiles = [smolRD.smiles_from_mol(mol, canonical=True) for mol in mols if mol is not None]
         valid_smiles = [smi for smi in smiles if smi is not None]
+        
+
+        
         novel = [smi not in self.smiles for smi in valid_smiles]
 
         self.novel += sum(novel)

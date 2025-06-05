@@ -1,6 +1,6 @@
 
 
-data_path: './data/geom/smol'
+data_path: './data/geom'
 dataset: 'geom-drugs'
 remove_h: false
 trial_run: false
@@ -20,13 +20,13 @@ max_atoms: 256
 arch: 'semla'
 d_rep: 512
 encoder_type: 'unimol_truncated'
-encoder_path: '../checkpoints/encoder_ckpts/unimol_drug_6layers_noise1.5.pt'
+encoder_path: '../checkpoints/encoder_ckpts/drug_unimol6layers_noise1.5.pt'
 cond_type: "adafusion"
 
 
 epochs: 300
 lr: 0.0003
-batch_cost: 4096 # 
+batch_cost: 2048 # 
 acc_batches: 1
 gradient_clip_val: 1.0
 type_loss_weight: 0.2 # 

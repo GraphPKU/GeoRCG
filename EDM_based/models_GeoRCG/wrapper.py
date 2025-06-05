@@ -55,6 +55,13 @@ class SelfConditionWrappedSampler(torch.nn.Module):
         else:
             print("Using provided fixed rep.")
             sampled_rep = fixed_rep
+        
+        noise_scale = 0.
+        sampled_rep = sampled_rep * torch.randn(
+            sampled_rep.shape, 
+            device=device
+        ) * noise_scale
+        print(f"Adding {noise_scale} noise to the sampled rep.")
             
         # Now sample from gen conditioning on the rep
         print("Sampling Molecules conditioning on Reps ...")
