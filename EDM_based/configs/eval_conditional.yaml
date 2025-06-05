@@ -16,8 +16,8 @@ property: 'alpha'  # options: 'alpha', 'homo', 'lumo', 'gap', 'mu', 'Cv'
 no_cuda: false  # enables CUDA training
 debug_break: false  # break point or not
 log_interval: 5  # break point or not
-batch_size: 500  # break point or not
-iterations: 19  # break point or not
+batch_size: 1000  # break point or not
+iterations: 9  # break point or not
 task: 'gen'  # options: 'naive', 'gen', 'qm9_second_half', 'qualitative'
 
 gen_model_path: ../checkpoints/gen_ckpts/edm_qm9_second_half_frad_noise0.3  # Specify model path

@@ -20,7 +20,7 @@ max_atoms: 256
 arch: 'semla'
 d_rep: 512
 encoder_type: 'unimol_truncated'
-encoder_path: '../checkpoints/encoder_ckpts/drug_unimol6layers_noise1.5.pt'
+encoder_path: '../checkpoints/encoder_ckpts/drug_unimol_6layers_noise1.5.pt'
 cond_type: "adafusion"
 
 

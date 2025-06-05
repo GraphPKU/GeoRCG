@@ -59,4 +59,4 @@ unimol_args:
 
   encoder_layers: 6
 
-  unimol_used_layer_num: 2
+  unimol_used_layer_num: 3
