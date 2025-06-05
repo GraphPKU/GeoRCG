@@ -10,7 +10,7 @@ integration_steps: 100
 cat_sampling_noise_level: 1
 ode_sampling_strategy: "log"
 
-encoder_type: "unimol"  # 'unimol' or 'frad'
+encoder_type: "unimol_global"
 encoder_path: "../checkpoints/encoder_ckpts/drug_unimol_global_iter1860000.pt"
 sampler: "PCSampler"  # ["PCSampler", "GtSampler", "DDIMSampler"]
 rdm_ckpt: "../checkpoints/rdm_ckpts/rdm_drug_semla_unimol_global_truncated4/model/checkpoint-last.pth"  # resume from checkpoint

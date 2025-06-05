@@ -1,7 +1,7 @@
 unimol_args:
   data: ./data/geom
   dict_name: dict.txt
-  user_dir: ./models/unimol/unimol
+  user_dir: ./models_GeoRCG/unimol/unimol
   train_subset: train
   valid_subset: valid
   data_path: ./data/geom
@@ -12,7 +12,7 @@ unimol_args:
   num_workers: 8
   ddp_backend: c10d
 
-  task: unimol_drug_more_global
+  task: unimol_global
   loss: unimol_global
   arch: unimol_global
 

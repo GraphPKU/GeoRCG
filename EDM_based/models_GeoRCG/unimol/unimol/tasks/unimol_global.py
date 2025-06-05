@@ -123,8 +123,8 @@ class DrugDataset:
 
 
 
-@register_task("unimol_drug_more_global")
-class UniMolDrugMoreGlobalTask(UnicoreTask):
+@register_task("unimol_global")
+class UniMolGlobalTask(UnicoreTask):
     """Task for training transformer auto-encoder models."""
 
     @staticmethod

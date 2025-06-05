@@ -817,7 +817,7 @@ class EquiInvDynamics(torch.nn.Module):
                 coords, inv_feats, edge_feats = out
 
         # Apply a final feedforward block and project coord sets to single coord set
-        coords, inv_feats = self.final_ff_block(coords, inv_feats, atom_mask)
+        coords, inv_feats = self.final_ff_block(coords, inv_feats, atom_mask, rep=rep)
         out_coords = self.coord_norm(coords, atom_mask)
         out_coords = self.coord_head(out_coords.transpose(1, -1))
         out_coords = out_coords.transpose(1, -1).squeeze(1)

@@ -57,7 +57,7 @@ class SelfConditionWrappedSampler(torch.nn.Module):
             sampled_rep = fixed_rep
         
         noise_scale = 0.
-        sampled_rep = sampled_rep * torch.randn(
+        sampled_rep = sampled_rep + torch.randn(
             sampled_rep.shape, 
             device=device
         ) * noise_scale
