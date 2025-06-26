@@ -204,3 +204,9 @@ wandb/
 outputs/
 data/qm9_semla/
 __pycache__/
+
+
+
+
+src_GeoRCG/train_qm9.py
+flowmodels/fm_property.py

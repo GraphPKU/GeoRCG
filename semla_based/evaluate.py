@@ -40,6 +40,7 @@ def load_model(args, vocab):
     hparams["rep_dropout_prob"] = 0.1 # During evaluation, this hyperparameter is not used, so we set it to 0.1 for simplicity
     hparams["noise_sigma"] = 0.1 # During evaluation, this hyperparameter is not used, so we set it to 0.1 for simplicity
     hparams["dropout"] = 0.1 
+    hparams["dataset"] = args.dataset
     
     
     # # For reproduction
@@ -75,6 +76,7 @@ def load_model(args, vocab):
             dropout=hparams["dropout"],
             original=hparams["original"], 
             use_gate=hparams["use_gate"],
+            cond_type=hparams.get("cond_type", "cross_attn"),
         )
         egnn_gen = SemlaGenerator(
             hparams["d_model"],
@@ -85,7 +87,8 @@ def load_model(args, vocab):
             n_edge_types=n_bond_types,
             self_cond=hparams["self_cond"],
             size_emb=hparams["size_emb"],
-            max_atoms=hparams["max_atoms"]
+            max_atoms=hparams["max_atoms"],
+            d_rep=hparams["d_rep"],
         )
 
     elif hparams["architecture"] == "eqgat":

@@ -15,7 +15,7 @@ rdm_args:
   wandb_usr: null
   no_wandb: false # Disable wandb
   online: true # true = wandb online -- false = wandb offline
-  exp_name: 'rdm_drug'
+  exp_name: 'rdm_drug_unimol_6layers'
   vis_interval: 2
   save_individual: 20
 
@@ -39,7 +39,7 @@ rdm_args:
   dataset: geom
 
   encoder_type: unimol
-  encoder_path: ../checkpoints/encoder_ckpts/unimol_drug.pt
+  encoder_path: ../checkpoints/encoder_ckpts/drug_unimol_6layers_noise1.5.pt
   
   semlaflow_data: false
 

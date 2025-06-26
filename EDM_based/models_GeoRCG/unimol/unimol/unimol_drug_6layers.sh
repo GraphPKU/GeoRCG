@@ -1,7 +1,7 @@
-data_path=/data/muhan/zian/geom # replace to your data path
-data_ligands=/data/muhan/zian/ligands # replace to your data path
-save_dir=/home/muhan/zian/GeoRCG/EDM_based/unimol_drug_6layers_noise1.5 # replace to your save path
-user_dir=/home/muhan/zian/GeoRCG/EDM_based/models_GeoRCG/unimol/unimol
+data_path=??? # replace to your data path
+data_ligands=??? # replace to your data path
+save_dir=??? # replace to your save path
+user_dir=??? # replace to your user dir path
 n_gpu=8
 MASTER_PORT=29530
 lr=1e-4

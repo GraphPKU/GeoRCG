@@ -1,6 +1,6 @@
 gen_args:
   # logging
-  exp_name: 'gen_batch128_noisy0.3_drop0.2_pretrain'
+  exp_name: 'edm_qm9_frad_noise0.3'
   wandb_usr: zian-li
   no_wandb: false # Disable wandb
   online: true # true = wandb online -- false = wandb offline
@@ -99,7 +99,7 @@ gen_args:
 
   # Encoder
   encoder_type: frad # unimol or frad
-  encoder_path: "../checkpoints/encoder_ckpts/QM9.ckpt" 
+  encoder_path: "../checkpoints/encoder_ckpts/qm9_frad.ckpt" 
   rep_nf: 256
 
 
@@ -108,6 +108,6 @@ gen_args:
   debug: false
 
 
-  use_gate: true
+  use_gate: false
 
   

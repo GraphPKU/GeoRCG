@@ -12,9 +12,9 @@ unimol_args:
   num_workers: 8
   ddp_backend: c10d
 
-  task: unimol
-  loss: unimol
-  arch: unimol_base
+  task: unimol_global
+  loss: unimol_global
+  arch: unimol_global
 
   optimizer: adam
   adam_betas: [0.9, 0.99]
@@ -56,7 +56,4 @@ unimol_args:
   batch_size: 64
 
   mode: infer
-
-  encoder_layers: 6
-
   unimol_used_layer_num: 4

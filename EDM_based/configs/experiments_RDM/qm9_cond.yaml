@@ -35,7 +35,7 @@ rdm_args:
   include_charges: true # include atom charge or not
 
   encoder_type: frad
-  encoder_path: "../checkpoints/encoder_ckpts/QM9.ckpt"
+  encoder_path: "../checkpoints/encoder_ckpts/qm9_frad.ckpt"
   conditioning: ["lumo"]
 
   semlaflow_data: false

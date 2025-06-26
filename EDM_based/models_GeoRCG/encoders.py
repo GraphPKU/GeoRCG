@@ -20,7 +20,7 @@ def initialize_encoder(encoder_type, device, encoder_ckpt_path):
         encoder = load_model(filepath=encoder_ckpt_path, device=device, args=encoder_args, only_representation=True)
         encoder = encoder.to(device)
 
-    elif encoder_type == "unimol" or encoder_type == "unimol_truncated":
+    elif encoder_type == "unimol" or encoder_type == "unimol_truncated" or encoder_type == "unimol_global":
         try:
             import unicore
         except ImportError as e:
@@ -29,7 +29,7 @@ def initialize_encoder(encoder_type, device, encoder_ckpt_path):
             tasks,
             utils,
         )
-        encoder_args_path = "./configs/unimol_encoder.yaml" if encoder_type == "unimol" else "./configs/unimol_truncated_encoder.yaml"
+        encoder_args_path = "./configs/unimol_encoder.yaml" if encoder_type == "unimol" else "./configs/unimol_truncated_encoder.yaml" if encoder_type == "unimol_truncated" else "./configs/unimol_global_encoder.yaml"
         unimol_args = OmegaConf.load(encoder_args_path).unimol_args
         unimol_args.finetune_mol_model = encoder_ckpt_path
         
@@ -102,9 +102,11 @@ def get_global_representation(node_mask, rep_encoder, x, h, noise_sigma=0., devi
         rep_encoder.to(device)
     
     batch_size, max_node_num = x.shape[0], x.shape[1]
-    if "UniMol" in rep_encoder.__class__.__name__:
+    if "UniMolModelGlobal" in rep_encoder.__class__.__name__:
         input_dict = format_input_to_unimol(x, h, node_mask)
-
+        rep = rep_encoder(**input_dict, features_only=True, output_global_rep_only=True)
+    elif "UniMol" in rep_encoder.__class__.__name__:
+        input_dict = format_input_to_unimol(x, h, node_mask)
         node_context, pair_context = rep_encoder(**input_dict, features_only=True)
         # Flatten node_context
         node_mask_bool = node_mask.to(torch.bool).reshape(batch_size, max_node_num) # (b, max_n)
@@ -125,13 +127,12 @@ def get_global_representation(node_mask, rep_encoder, x, h, noise_sigma=0., devi
     
         assert len(node_context.shape) == 2 # (flattened_node_num, context_dim)
         rep = scatter(node_context, batch, dim=0, reduce="sum") # NOTE: We use sum here, but we can use other aggregation methods.
-        
-
-    assert rep.shape == (batch_size, node_context.shape[-1])
-        
-    rep_std = torch.std(rep, dim=1, keepdim=True)
-    rep_mean = torch.mean(rep, dim=1, keepdim=True) # NOTE: Layer Norm.
-    rep = (rep - rep_mean) / rep_std
+    if not "UniMolModelGlobal" in rep_encoder.__class__.__name__:
+        assert rep.shape == (batch_size, node_context.shape[-1])
+            
+        rep_std = torch.std(rep, dim=1, keepdim=True)
+        rep_mean = torch.mean(rep, dim=1, keepdim=True) # NOTE: Layer Norm.
+        rep = (rep - rep_mean) / rep_std
     
     if noise_sigma > 0.:
         noise = torch.randn(rep.shape, device=rep.device) * noise_sigma

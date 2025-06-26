@@ -19,9 +19,9 @@ size_emb: 64
 max_atoms: 256
 arch: 'semla'
 d_rep: 512
-encoder_type: 'unimol_truncated'
-encoder_path: '../checkpoints/encoder_ckpts/drug_unimol_6layers_noise1.5.pt'
-cond_type: "adafusion"
+encoder_type: 'unimol_global'
+encoder_path: '../checkpoints/encoder_ckpts/drug_unimol_global_iter1.8M.pt'
+cond_type: "cross_attn"
 
 
 epochs: 300
@@ -66,7 +66,7 @@ noise_sigma: 0.3
 attn_block_num: 1
 dropout: 0.0
 
-version: adafusion_unimol6layers_truncated_dropout0.0_noise0.3_reploss0.5 # Wandb Log Version
+version: semlaflow_unimol_global_truncated4_noise0.3_reploss0.5 # Wandb Log Version
 
 original: false
 use_gate: true

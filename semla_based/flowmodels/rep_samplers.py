@@ -367,7 +367,7 @@ def initilize_rep_sampler(rep_sampler_args, dataset_args=None, debug=False, data
             train_file_name = "second_half_train.smol"
         elif dataset_args.dataset == "qm9_first_half":
             train_file_name = "first_half_train.smol"
-        if dataset_args.trial_run:
+        if getattr(dataset_args, "trial_run", False):
             train_file_name = "val.smol"
         assert train_file_name is not None, f"Unknown dataset {dataset_args.train_file_name}"
 

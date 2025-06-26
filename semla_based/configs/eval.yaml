@@ -5,13 +5,13 @@ dataset: "geom-drugs"
 batch_cost: 8192
 dataset_split: "test"
 n_molecules: 10000
-n_replicates: 3
+n_replicates: 1
 integration_steps: 100
 cat_sampling_noise_level: 1
 ode_sampling_strategy: "log"
 
 encoder_type: "unimol_global"
-encoder_path: "../checkpoints/encoder_ckpts/drug_unimol_global_iter1860000.pt"
+encoder_path: "../checkpoints/encoder_ckpts/drug_unimol_global_iter1.8M.pt"
 sampler: "PCSampler"  # ["PCSampler", "GtSampler", "DDIMSampler"]
 rdm_ckpt: "../checkpoints/rdm_ckpts/rdm_drug_semla_unimol_global_truncated4/model/checkpoint-last.pth"  # resume from checkpoint
 

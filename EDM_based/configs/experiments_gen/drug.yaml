@@ -1,7 +1,7 @@
 
 gen_args:
   # logging
-  exp_name: 'drug_unimol6layers_fullepochs_noise0.5'
+  exp_name: 'edm_drug_unimol6layers_noise0.5'
   wandb_usr: zian-li
   no_wandb: false # Disable wandb
   online: true # true = wandb online -- false = wandb offline
@@ -93,7 +93,7 @@ gen_args:
 
   # Encoder
   encoder_type: unimol # unimol or frad
-  encoder_path: "../checkpoints/encoder_ckpts/unimol_drug_6layers_noise1.5.pt" 
+  encoder_path: "../checkpoints/encoder_ckpts/drug_unimol_6layers_noise1.5.pt" 
   rep_nf: 512
 
   # DEBUG

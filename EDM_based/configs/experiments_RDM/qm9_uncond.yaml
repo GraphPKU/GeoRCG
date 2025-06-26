@@ -36,7 +36,7 @@ rdm_args:
 
   conditioning: []
   encoder_type: frad
-  encoder_path: "../checkpoints/encoder_ckpts/QM9.ckpt" 
+  encoder_path: "../checkpoints/encoder_ckpts/qm9_frad.ckpt" 
 
   semlaflow_data: false
 
