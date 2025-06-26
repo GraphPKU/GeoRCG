@@ -33,7 +33,7 @@ bash ./install.sh
 
 ## Checkpoints
 
-You can download all the checkpoints used in the paper from [this link](https://drive.google.com/drive/folders/1_c8gTFLlpiiFmKA_h12EvD25cGK_d-CQ?usp=sharing).
+You can download all the checkpoints used in the paper from [this link](https://drive.google.com/drive/folders/1_c8gTFLlpiiFmKA_h12EvD25cGK_d-CQ?usp=sharing), and place them in the `checkpoints` directory. 
 
 ---
 
@@ -187,3 +187,32 @@ Change `integration_steps` to adjust the sampling step number.
 > ```bash
 > `ckpt_path=../checkpoints/gen_ckpts/semlaflow_unimol_truncated4_noise0.3_reploss0.1/checkpoints/last.ckpt rdm_ckpt=../checkpoints/rdm_ckpts/rdm_drug_semla_unimol_truncated4`
 > ```
+
+
+---
+
+
+## Citation
+
+If you find this repository useful and use it in your research, please cite our paper:
+
+```bibtex
+@article{li2024geometric,
+  title={Geometric Representation Condition Improves Equivariant Molecule Generation},
+  author={Li, Zian and Zhou, Cai and Wang, Xiyuan and Peng, Xingang and Zhang, Muhan},
+  journal={arXiv preprint arXiv:2410.03655},
+  year={2024}
+}
+```
+
+
+## Acknowledgements
+
+This code repository is built upon the following works:
+
+- [RCG](https://github.com/LTH14/rcg)
+- [EDM](https://github.com/ehoogeboom/e3_diffusion_for_molecules)
+- [Unimol](https://github.com/deepmodeling/Uni-Mol)
+- [Frad](https://github.com/fengshikun/Frad)
+
+Thanks for all the authors for their contributions!
